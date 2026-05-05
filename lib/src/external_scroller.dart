@@ -33,11 +33,11 @@ class BrowserScroller extends StatefulWidget {
 class BrowserScrollTouchRegion extends StatefulWidget {
   const BrowserScrollTouchRegion({
     super.key,
-    required this.scrollerApi,
+    this.scrollerApi,
     required this.child,
   });
 
-  final ExternalScroller scrollerApi;
+  final ExternalScroller? scrollerApi;
   final Widget child;
 
   @override
@@ -46,26 +46,60 @@ class BrowserScrollTouchRegion extends StatefulWidget {
 }
 
 class _BrowserScrollTouchRegionState extends State<BrowserScrollTouchRegion> {
+  ExternalScroller? _scrollerApi;
+
+  ExternalScroller _scrollerApiFor(BuildContext context) {
+    final ExternalScroller? scrollerApi =
+        widget.scrollerApi ?? _BrowserScrollScope.maybeOf(context);
+    assert(
+      scrollerApi != null,
+      'BrowserScrollTouchRegion must be below BrowserScroller or provide '
+      'an explicit scrollerApi.',
+    );
+    return scrollerApi!;
+  }
+
   @override
   void dispose() {
-    widget.scrollerApi.setNativePanBlocked(false);
+    _scrollerApi?.setNativePanBlocked(false);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    _scrollerApi = _scrollerApiFor(context);
     return Listener(
       onPointerDown: (_) {
-        widget.scrollerApi.setNativePanBlocked(true);
+        _scrollerApi!.setNativePanBlocked(true);
       },
       onPointerUp: (_) {
-        widget.scrollerApi.setNativePanBlocked(false);
+        _scrollerApi!.setNativePanBlocked(false);
       },
       onPointerCancel: (_) {
-        widget.scrollerApi.setNativePanBlocked(false);
+        _scrollerApi!.setNativePanBlocked(false);
       },
       child: widget.child,
     );
+  }
+}
+
+class _BrowserScrollScope extends InheritedWidget {
+  const _BrowserScrollScope({
+    required this.scrollerApi,
+    required super.child,
+  });
+
+  final ExternalScroller scrollerApi;
+
+  static ExternalScroller? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_BrowserScrollScope>()
+        ?.scrollerApi;
+  }
+
+  @override
+  bool updateShouldNotify(_BrowserScrollScope oldWidget) {
+    return oldWidget.scrollerApi != scrollerApi;
   }
 }
 
@@ -238,24 +272,27 @@ class _BrowserScrollerState extends State<BrowserScroller> {
         max(0, viewSize.width - visibleRect.right),
         max(0, viewSize.height - visibleRect.bottom),
       ),
-      child: NotificationListener<OverscrollNotification>(
-        onNotification: _handleOverscrollNotification,
-        child: SizedBox(
-          width: visibleRect.width,
-          height: visibleRect.height,
-          child: Scrollable(
-            controller: _scrollController,
-            physics: const NeverScrollableScrollPhysics(),
-            scrollBehavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            viewportBuilder: (BuildContext context, ViewportOffset offset) {
-              return Viewport(
-                offset: offset,
-                axisDirection: AxisDirection.down,
-                slivers: <Widget>[SliverToBoxAdapter(child: widget.child)],
-              );
-            },
+      child: _BrowserScrollScope(
+        scrollerApi: scrollerApi,
+        child: NotificationListener<OverscrollNotification>(
+          onNotification: _handleOverscrollNotification,
+          child: SizedBox(
+            width: visibleRect.width,
+            height: visibleRect.height,
+            child: Scrollable(
+              controller: _scrollController,
+              physics: const NeverScrollableScrollPhysics(),
+              scrollBehavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(scrollbars: false),
+              viewportBuilder: (BuildContext context, ViewportOffset offset) {
+                return Viewport(
+                  offset: offset,
+                  axisDirection: AxisDirection.down,
+                  slivers: <Widget>[SliverToBoxAdapter(child: widget.child)],
+                );
+              },
+            ),
           ),
         ),
       ),
