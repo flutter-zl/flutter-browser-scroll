@@ -31,9 +31,11 @@ No platform-view scroll reimplementation. No wheel interception. The package onl
 - `jumpTo` updates Flutter's attached scroll position synchronously when one exists, then asks the browser to move the document.
 - `animateTo` uses browser smooth scrolling for non-zero durations. The browser chooses the exact timing and curve, so custom Flutter `Duration` and `Curve` values are not honored exactly.
 - The returned `animateTo` future resolves when the browser reaches the target, appears idle, is superseded, or hits a timeout.
-- Programmatic browser scrolls do not currently synthesize the same `ScrollStartNotification` and `ScrollEndNotification` sequence as Flutter-driven animations.
+- Programmatic browser scrolls do not synthesize the same `ScrollStartNotification` and `ScrollEndNotification` sequence as Flutter-driven animations. Widgets or app code that depend on those notifications, such as auto-hiding `Scrollbar`s, scroll-aware FABs, or custom refresh/load indicators, may not observe programmatic browser scroll start/end.
 
 The package also includes a narrow platform-view and iframe carve-out in its iOS touch guard. This prevents the package from blocking native touch behavior inside embedded DOM content while still avoiding double-scroll for marked inner Flutter scrollables.
+
+On iOS Safari, wrap inner Flutter scrollables in `BrowserScrollTouchRegion` for reliable touch handoff. The package also has a semantics-based fallback for unmarked inner scrollables, which requires `SemanticsBinding.instance.ensureSemantics()` and may miss inner scrollables that lack the `flt-semantics-scroll-overflow` marker.
 
 ## Next Features
 
