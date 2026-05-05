@@ -300,7 +300,6 @@ class _TestPageBodyState extends State<_TestPageBody> {
         child: SizedBox(
           height: 400,
           child: BrowserScrollTouchRegion(
-            scrollerApi: _scrollerApiFor(context),
             child: ListView(
               primary: false,
               physics: const ClampingScrollPhysics(),
@@ -321,7 +320,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
             'At the bottom edge, the inner list clamps and the '
             'parent page takes over.',
         color: Colors.cyan,
-        child: _PullToRefreshTest(scrollerApi: _scrollerApiFor(context)),
+        child: const _PullToRefreshTest(),
       ),
 
       // TEST 3: Cross-origin iframe (Wikipedia)
@@ -827,9 +826,7 @@ class _TestSection extends StatelessWidget {
 }
 
 class _PullToRefreshTest extends StatefulWidget {
-  const _PullToRefreshTest({required this.scrollerApi});
-
-  final ExternalScroller scrollerApi;
+  const _PullToRefreshTest();
 
   @override
   State<_PullToRefreshTest> createState() => _PullToRefreshTestState();
@@ -854,7 +851,6 @@ class _PullToRefreshTestState extends State<_PullToRefreshTest> {
       child: RefreshIndicator(
         onRefresh: _onRefresh,
         child: BrowserScrollTouchRegion(
-          scrollerApi: widget.scrollerApi,
           child: ListView.builder(
             primary: false,
             physics: const ClampingScrollPhysics(),
