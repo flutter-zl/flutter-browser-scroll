@@ -208,6 +208,10 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   @override
   void didUpdateWidget(BrowserScroller oldWidget) {
     super.didUpdateWidget(oldWidget);
+    assert(
+      oldWidget.scrollerApi == widget.scrollerApi,
+      'BrowserScroller does not support changing scrollerApi after setup.',
+    );
     _scrollController
       ..scrollerApi = scrollerApi
       ..prepareTarget = _prepareForTarget;
@@ -266,6 +270,10 @@ class JsViewScroller implements ExternalScroller {
   final web.HTMLElement _hostElement;
 
   late final web.HTMLElement _placeholderElement;
+  _StyleSnapshot? _hostStyleSnapshot;
+  _StyleSnapshot? _bodyStyleSnapshot;
+  _StyleSnapshot? _documentElementStyleSnapshot;
+  _StyleSnapshot? _fixedViewStyleSnapshot;
   bool _setupComplete = false;
 
   final web.EventTarget _scrollTarget = web.window;
@@ -317,6 +325,7 @@ class JsViewScroller implements ExternalScroller {
       ..removeAttribute('style');
     _hostElement.parentElement!.insertBefore(_placeholderElement, _hostElement);
 
+    _hostStyleSnapshot = _StyleSnapshot.capture(_hostElement);
     _fixElementToViewport(_hostElement);
   }
 
@@ -324,6 +333,9 @@ class JsViewScroller implements ExternalScroller {
     final web.HTMLElement body = web.document.body!;
     final web.HTMLElement documentElement =
         web.document.documentElement! as web.HTMLElement;
+
+    _bodyStyleSnapshot = _StyleSnapshot.capture(body);
+    _documentElementStyleSnapshot = _StyleSnapshot.capture(documentElement);
 
     _placeholderElement = web.document.createElement('div') as web.HTMLElement;
     _placeholderElement.setAttribute('data-browser-scroll-placeholder', 'true');
@@ -369,6 +381,7 @@ class JsViewScroller implements ExternalScroller {
 
     final web.Element? flutterView = body.querySelector('flutter-view');
     if (flutterView case final web.HTMLElement view) {
+      _fixedViewStyleSnapshot = _StyleSnapshot.capture(view);
       _fixElementToViewport(view);
     }
   }
@@ -397,9 +410,7 @@ class JsViewScroller implements ExternalScroller {
       if (target.isA<web.Element>()) {
         final web.Element element = target as web.Element;
         final String tagName = element.tagName.toLowerCase();
-        if (tagName == 'flt-platform-view' ||
-            tagName == 'iframe' ||
-            element.hasAttribute('aria-owns')) {
+        if (tagName == 'flt-platform-view' || tagName == 'iframe') {
           return true;
         }
       }
@@ -412,7 +423,8 @@ class JsViewScroller implements ExternalScroller {
       return false;
     }
     final web.TouchEvent touchEvent = event as web.TouchEvent;
-    final web.Touch? touch = touchEvent.touches.item(0);
+    // TODO: Track touch identifiers individually for multi-touch gestures.
+    final web.Touch? touch = touchEvent.changedTouches.item(0);
     if (touch == null) {
       return false;
     }
@@ -629,6 +641,78 @@ class JsViewScroller implements ExternalScroller {
       );
       _touchMoveListenerAttached = false;
     }
+    _placeholderElement.remove();
+    _hostStyleSnapshot?.restore();
+    _bodyStyleSnapshot?.restore();
+    _documentElementStyleSnapshot?.restore();
+    _fixedViewStyleSnapshot?.restore();
+    _hostStyleSnapshot = null;
+    _bodyStyleSnapshot = null;
+    _documentElementStyleSnapshot = null;
+    _fixedViewStyleSnapshot = null;
+    _setupComplete = false;
+  }
+}
+
+class _StyleSnapshot {
+  _StyleSnapshot({
+    required this.element,
+    required this.position,
+    required this.inset,
+    required this.overflow,
+    required this.height,
+    required this.width,
+    required this.top,
+    required this.left,
+    required this.right,
+    required this.bottom,
+    required this.touchAction,
+    required this.userSelect,
+  });
+
+  factory _StyleSnapshot.capture(web.HTMLElement element) {
+    return _StyleSnapshot(
+      element: element,
+      position: element.style.position,
+      inset: element.style.inset,
+      overflow: element.style.overflow,
+      height: element.style.height,
+      width: element.style.width,
+      top: element.style.top,
+      left: element.style.left,
+      right: element.style.right,
+      bottom: element.style.bottom,
+      touchAction: element.style.touchAction,
+      userSelect: element.style.userSelect,
+    );
+  }
+
+  final web.HTMLElement element;
+  final String position;
+  final String inset;
+  final String overflow;
+  final String height;
+  final String width;
+  final String top;
+  final String left;
+  final String right;
+  final String bottom;
+  final String touchAction;
+  final String userSelect;
+
+  void restore() {
+    element.style
+      ..position = position
+      ..inset = inset
+      ..overflow = overflow
+      ..height = height
+      ..width = width
+      ..top = top
+      ..left = left
+      ..right = right
+      ..bottom = bottom
+      ..touchAction = touchAction
+      ..userSelect = userSelect;
   }
 }
 

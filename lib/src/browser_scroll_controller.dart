@@ -43,6 +43,9 @@ class BrowserScrollController extends ScrollController {
       return;
     }
     _prepareTarget?.call(value);
+    if (hasClients) {
+      super.jumpTo(value);
+    }
     unawaited(scroller.scrollTo(value));
   }
 }
