@@ -37,6 +37,130 @@ The package also includes a narrow platform-view and iframe carve-out in its iOS
 
 On iOS Safari, wrap inner Flutter scrollables in `BrowserScrollTouchRegion` for reliable touch handoff. The package also has a semantics-based fallback for unmarked inner scrollables, which requires `SemanticsBinding.instance.ensureSemantics()` and may miss inner scrollables that lack the `flt-semantics-scroll-overflow` marker.
 
+## Usage
+
+### Basic page
+
+Use `runWidget` with the current Flutter view, then wrap the outer page content in `BrowserScroller`.
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
+
+void main() {
+  runWidget(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return View(
+      view: WidgetsBinding.instance.platformDispatcher.views.first,
+      child: const HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BrowserScroller(
+      scrollerApi: JsViewScroller(View.of(context).viewId),
+      child: Column(
+        children: <Widget>[
+          for (int i = 0; i < 100; i++) Text('Item $i'),
+        ],
+      ),
+    );
+  }
+}
+```
+
+### Programmatic scroll
+
+Use `BrowserScrollController` when a FAB, button, or service needs to scroll the browser-owned page.
+
+```dart
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final BrowserScrollController _controller = BrowserScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        BrowserScroller(
+          controller: _controller,
+          scrollerApi: JsViewScroller(View.of(context).viewId),
+          child: Column(
+            children: <Widget>[
+              for (int i = 0; i < 100; i++) Text('Item $i'),
+            ],
+          ),
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            onPressed: () {
+              _controller.animateTo(
+                0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            },
+            child: const Icon(Icons.arrow_upward),
+          ),
+        ),
+      ],
+    );
+  }
+}
+```
+
+### Inner Flutter scrollables on iOS
+
+When you place a Flutter `ListView` or other scrollable inside the browser-scrolled page, wrap it in `BrowserScrollTouchRegion`. This prevents iOS Safari from panning the document while Flutter is already handling the inner scrollable gesture. At the bottom edge, overscroll is forwarded to the browser-owned parent page.
+
+```dart
+BrowserScroller(
+  scrollerApi: JsViewScroller(View.of(context).viewId),
+  child: Column(
+    children: <Widget>[
+      SizedBox(
+        height: 400,
+        child: BrowserScrollTouchRegion(
+          child: ListView.builder(
+            primary: false,
+            physics: const ClampingScrollPhysics(),
+            itemCount: 50,
+            itemBuilder: (BuildContext context, int index) {
+              return ListTile(title: Text('Inner item $index'));
+            },
+          ),
+        ),
+      ),
+    ],
+  ),
+)
+```
+
 ## Next Features
 
 - Revealed-content placeholder height for lazy Flutter lists.
