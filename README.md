@@ -21,7 +21,7 @@ dependencies:
   flutter_browser_scroll:
     git:
       url: https://github.com/flutter-zl/flutter-browser-scroll.git
-      ref: main
+      ref: v0.1.0
 ```
 
 The target mental model:
