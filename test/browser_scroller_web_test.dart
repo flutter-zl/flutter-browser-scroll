@@ -218,6 +218,37 @@ void main() {
       expect(scroller.scrollByCalls, isEmpty);
     });
 
+    testWidgets('BrowserScrollChild suppresses top-edge ballistic overscroll', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          child: BrowserScrollChild(
+            child: Builder(
+              builder: (BuildContext context) {
+                return const SizedBox(
+                  key: ValueKey<String>('ballistic-target'),
+                  width: 800,
+                  height: 100,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      _dispatchTopEdgeOverscroll(
+        tester.element(find.byKey(const ValueKey<String>('ballistic-target'))),
+        isActiveDrag: false,
+      );
+      await tester.pump();
+
+      expect(scroller.scrollByCalls, isEmpty);
+    });
+
     testWidgets('bare BrowserScroller forwards top-edge overscroll', (
       WidgetTester tester,
     ) async {
@@ -276,7 +307,10 @@ class _TestHost extends StatelessWidget {
   }
 }
 
-void _dispatchTopEdgeOverscroll(BuildContext context) {
+void _dispatchTopEdgeOverscroll(
+  BuildContext context, {
+  bool isActiveDrag = true,
+}) {
   OverscrollNotification(
     metrics: FixedScrollMetrics(
       minScrollExtent: 0,
@@ -288,7 +322,8 @@ void _dispatchTopEdgeOverscroll(BuildContext context) {
     ),
     context: context,
     overscroll: -20,
-    dragDetails: DragUpdateDetails(globalPosition: Offset.zero),
+    dragDetails:
+        isActiveDrag ? DragUpdateDetails(globalPosition: Offset.zero) : null,
   ).dispatch(context);
 }
 

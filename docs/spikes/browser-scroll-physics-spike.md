@@ -129,3 +129,11 @@ cancel active drag activity.
 
 Do not keep `BrowserScrollPhysics` for the marker-removal goal unless we find a
 separate reason it improves behavior with the marker still present.
+
+## Shipped Outcome
+
+Of the spike, only the `forcePixels` sync change was kept on `main` in commit
+`3346ad3`. `BrowserScrollPhysics` was dropped. The package kept the explicit
+marker approach under the `BrowserScrollChild` name, with
+`preserveTopOverscroll` as the opt-in escape hatch for refresh-style inner
+scrollables.

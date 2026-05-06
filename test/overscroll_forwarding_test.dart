@@ -85,5 +85,18 @@ void main() {
         isTrue,
       );
     });
+
+    test('forwards bottom-edge ballistic overscroll', () {
+      expect(
+        shouldForwardOverscroll(
+          overscroll: 20,
+          pixels: 100,
+          minScrollExtent: 0,
+          maxScrollExtent: 100,
+          isActiveDrag: false,
+        ),
+        isTrue,
+      );
+    });
   });
 }

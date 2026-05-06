@@ -49,6 +49,13 @@ class BrowserScroller extends StatefulWidget {
 /// for details. Flutter's engine-level browser scrolling work, such as
 /// https://github.com/flutter/flutter/pull/184102, can solve this lower in the
 /// stack. This package uses an explicit marker instead.
+///
+/// Use this only for inner Flutter scrollables, such as [ListView], [GridView],
+/// and [CustomScrollView]. Do not wrap iframes, platform views, the outer page,
+/// or plain non-scrollable content.
+///
+/// On desktop and Android Chrome this wrapper is not strictly required for
+/// plain inner scrollables. On iOS Safari it is required to avoid double-scroll.
 class BrowserScrollChild extends StatefulWidget {
   const BrowserScrollChild({
     super.key,
@@ -57,6 +64,11 @@ class BrowserScrollChild extends StatefulWidget {
     required this.child,
   });
 
+  /// The browser scroller used by this child.
+  ///
+  /// Most apps leave this null so the nearest ancestor [BrowserScroller]
+  /// provides the scroller. Pass a value only for tests or custom embedders that
+  /// need a different scroller.
   final ExternalScroller? scrollerApi;
 
   /// Whether top-edge overscroll inside this region should stay with the inner
@@ -67,9 +79,14 @@ class BrowserScrollChild extends StatefulWidget {
   /// scrollables that should let pull-down gestures at the top continue
   /// scrolling the parent page.
   ///
+  /// When false, top-edge overscroll forwards to the parent page only during
+  /// active drag. Ballistic overscroll from a settle is not forwarded.
+  ///
   /// [BrowserScroller] reads this value when deciding whether to forward an
   /// [OverscrollNotification] from a descendant scrollable.
   final bool preserveTopOverscroll;
+
+  /// The inner Flutter scrollable subtree.
   final Widget child;
 
   @override

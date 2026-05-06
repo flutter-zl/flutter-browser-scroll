@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/animation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_browser_scroll/src/browser_scroll_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,6 +43,40 @@ void main() {
 
       expect(prepared, <double>[600]);
       expect(scroller.scrollCalls.single.offset, 600);
+    });
+
+    testWidgets('syncFromBrowser does not cancel active drag activity', (
+      WidgetTester tester,
+    ) async {
+      final controller = BrowserScrollController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: ListView.builder(
+            controller: controller,
+            itemCount: 50,
+            itemBuilder: (BuildContext context, int index) {
+              return const SizedBox(height: 100);
+            },
+          ),
+        ),
+      );
+
+      final TestGesture gesture = await tester.startGesture(
+        tester.getCenter(find.byType(ListView)),
+      );
+      await gesture.moveBy(const Offset(0, -40));
+
+      expect(controller.position.activity, isA<DragScrollActivity>());
+
+      controller.syncFromBrowser(50);
+
+      expect(controller.offset, 50);
+      expect(controller.position.activity, isA<DragScrollActivity>());
+
+      await gesture.up();
     });
   });
 }
