@@ -26,6 +26,14 @@ class BrowserScroller extends StatefulWidget {
   final ExternalScroller? scrollerApi;
   final Widget child;
 
+  @visibleForTesting
+  static BrowserScrollController Function() debugControllerFactory =
+      BrowserScrollController.new;
+
+  @visibleForTesting
+  static ExternalScroller Function(int viewId) debugScrollerFactory =
+      JsViewScroller.new;
+
   @override
   State<BrowserScroller> createState() => _BrowserScrollerState();
 }
@@ -123,7 +131,8 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     super.initState();
 
     _ownsController = widget.controller == null;
-    _scrollController = widget.controller ?? BrowserScrollController();
+    _scrollController =
+        widget.controller ?? BrowserScroller.debugControllerFactory();
   }
 
   @override
@@ -135,7 +144,7 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     _initialized = true;
 
     _ownedScrollerApi = widget.scrollerApi == null
-        ? JsViewScroller(View.of(context).viewId)
+        ? BrowserScroller.debugScrollerFactory(View.of(context).viewId)
         : null;
     _scrollController
       ..scrollerApi = scrollerApi
@@ -257,13 +266,28 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   @override
   void didUpdateWidget(BrowserScroller oldWidget) {
     super.didUpdateWidget(oldWidget);
-    assert(
-      oldWidget.scrollerApi == widget.scrollerApi,
-      'BrowserScroller does not support changing scrollerApi after setup.',
-    );
-    _scrollController
-      ..scrollerApi = scrollerApi
-      ..prepareTarget = _prepareForTarget;
+    if (oldWidget.controller != widget.controller) {
+      throw FlutterError.fromParts(<DiagnosticsNode>[
+        ErrorSummary(
+          'BrowserScroller does not support changing controller after setup.',
+        ),
+        ErrorDescription(
+          'Create a new BrowserScroller with a new key when changing the '
+          'browser scroll controller.',
+        ),
+      ]);
+    }
+    if (oldWidget.scrollerApi != widget.scrollerApi) {
+      throw FlutterError.fromParts(<DiagnosticsNode>[
+        ErrorSummary(
+          'BrowserScroller does not support changing scrollerApi after setup.',
+        ),
+        ErrorDescription(
+          'Create a new BrowserScroller with a new key when changing the '
+          'browser scroll bridge.',
+        ),
+      ]);
+    }
   }
 
   @override
