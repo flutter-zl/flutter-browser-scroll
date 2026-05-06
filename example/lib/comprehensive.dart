@@ -5,18 +5,18 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 
 void main() {
-  _registerPlatformViews();
-  runApp(const MyApp());
+  registerPlatformViews();
+  runApp(const MyApp(useBrowserScroller: true));
   SemanticsBinding.instance.ensureSemantics();
 }
 
-void _registerPlatformViews() {
+void registerPlatformViews() {
   ui_web.platformViewRegistry.registerViewFactory('youtube-iframe', (
     int viewId,
   ) {
     final iframe =
         web.document.createElement('iframe') as web.HTMLIFrameElement;
-    iframe.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+    iframe.src = 'https://www.youtube.com/embed/aqz-KE-bpKQ';
     iframe.style.border = 'none';
     iframe.style.width = '100%';
     iframe.style.height = '100%';
@@ -36,43 +36,6 @@ void _registerPlatformViews() {
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     return iframe;
-  });
-
-  ui_web.platformViewRegistry.registerViewFactory('wikipedia-in-div', (
-    int viewId,
-  ) {
-    // The iframe is taller than the div so the div has real scroll content.
-    // Chain: Wikipedia (cross-origin) → div (overflow:auto) → Flutter page.
-    final label = web.document.createElement('div') as web.HTMLDivElement;
-    label.textContent =
-        '⬇ overflow:auto div — scroll here first, then the Flutter page takes over';
-    label.style.background = '#e65100';
-    label.style.color = 'white';
-    label.style.padding = '6px 12px';
-    label.style.fontSize = '12px';
-    label.style.fontFamily = 'monospace';
-    label.style.position = 'sticky';
-    label.style.top = '0';
-    label.style.zIndex = '10';
-
-    final iframe =
-        web.document.createElement('iframe') as web.HTMLIFrameElement;
-    iframe.src = 'https://en.wikipedia.org/wiki/Main_Page';
-    iframe.style.border = 'none';
-    iframe.style.width = '100%';
-    iframe.style.height = '800px';
-    iframe.style.display = 'block';
-
-    final container = web.document.createElement('div') as web.HTMLDivElement;
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.overflow = 'auto';
-    container.style.border = '2px solid #e65100';
-    container.style.boxSizing = 'border-box';
-    container.append(label);
-    container.append(iframe);
-
-    return container;
   });
 
   ui_web.platformViewRegistry.registerViewFactory('scrollable-html-div', (
@@ -132,24 +95,30 @@ void _registerPlatformViews() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.useBrowserScroller});
+
+  final bool useBrowserScroller;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Browser Scroll - Comprehensive Test',
+      title: useBrowserScroller
+          ? 'Browser Scroll - Comprehensive Test (After)'
+          : 'Browser Scroll - Comprehensive Test (Before)',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const ComprehensiveTestPage(),
+      home: ComprehensiveTestPage(useBrowserScroller: useBrowserScroller),
     );
   }
 }
 
 class ComprehensiveTestPage extends StatefulWidget {
-  const ComprehensiveTestPage({super.key});
+  const ComprehensiveTestPage({super.key, required this.useBrowserScroller});
+
+  final bool useBrowserScroller;
 
   @override
   State<ComprehensiveTestPage> createState() => _ComprehensiveTestPageState();
@@ -166,9 +135,29 @@ class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
 
   @override
   Widget build(BuildContext context) {
+    final String introText = widget.useBrowserScroller
+        ? 'This is the AFTER demo. The flutter_browser_scroll package is '
+              'applied. The outer page scroll is owned by the browser; '
+              'Flutter mirrors the browser scroll position via '
+              'BrowserScrollController. Inner Flutter scrollables wrapped '
+              'in BrowserScrollChild chain to the parent page when they '
+              'reach a boundary, and BrowserScrollChild prevents iOS Safari '
+              'from panning the document while Flutter handles an inner '
+              'gesture. Compare with the BEFORE demo to see what the '
+              'package adds.'
+        : 'This is the BEFORE demo. The flutter_browser_scroll package is '
+              'NOT applied. The outer page is scrolled by Flutter, not the '
+              'browser. Inner Flutter scrollables do not chain to the '
+              'parent page when they reach a boundary, and on iOS Safari '
+              'touch on an inner list can also pan the document. Compare '
+              'with the AFTER demo to see what the package adds.';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Comprehensive Scroll Test'),
+        title: Text(
+          widget.useBrowserScroller
+              ? 'Comprehensive Scroll Test (After)'
+              : 'Comprehensive Scroll Test (Before)',
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       floatingActionButton: _ScrollFabColumn(
@@ -178,25 +167,16 @@ class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
       ),
       body: _TestPageBody(
         controller: _scrollController,
-        useBrowserScroller: true,
-        intro: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+        useBrowserScroller: widget.useBrowserScroller,
+        intro: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            'This demo explores browser-driven scrolling in Flutter Web. '
-            'Normally, Flutter intercepts all scroll events and handles '
-            'them in Dart. The BrowserScroller widget solves this by letting '
-            'the browser own the scroll position. When the user scrolls, '
-            'the browser moves the page natively, and the engine reports '
-            'the new offset back to Flutter via a dart:ui callback. '
-            'Flutter then syncs its internal pixel position to match. '
-            'This approach restores native browser behaviors while keeping '
-            'the Flutter widget tree fully in control of layout and '
-            'painting. Nested scrollables, pull-to-refresh, platform views, '
-            'cross-origin iframes, and programmatic scrolling via '
-            'ScrollController all continue to work correctly. Scroll down '
-            'to explore each test case and observe how the framework '
-            'handles each scenario.',
-            style: TextStyle(fontSize: 15, height: 1.6, color: Colors.black87),
+            introText,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: Colors.black87,
+            ),
           ),
         ),
       ),
@@ -277,18 +257,59 @@ class _TestPageBodyState extends State<_TestPageBody> {
       widget.intro,
       const SizedBox(height: 24),
 
-      // TEST 1: Basic scroll
+      // TEST 1: Inner list (with or without BrowserScrollChild)
       _TestSection(
         number: 1,
-        title: 'Basic Flutter Scroll',
-        description:
-            'Scroll this page with mouse wheel or trackpad. '
-            'The browser drives scrolling natively.',
+        title: widget.useBrowserScroller
+            ? 'Inner List with BrowserScrollChild'
+            : 'Inner List',
+        description: widget.useBrowserScroller
+            ? 'An inner Flutter ListView wrapped in BrowserScrollChild. '
+                  'Scroll inside it; when it reaches its top or bottom '
+                  'edge, the parent page continues scrolling. On iOS '
+                  'Safari this wrapper prevents the browser from panning '
+                  'the document at the same time as the inner list.'
+            : 'An inner Flutter ListView. On mobile browsers, without flutter_browser_scroll, '
+                  'scroll stops at the list boundary; the parent page '
+                  'does not continue',
         color: Colors.blue,
         status: TestStatus.pending,
         child: SizedBox(
           height: 400,
-          child: BrowserScrollChild(
+          child: widget.useBrowserScroller
+              ? BrowserScrollChild(
+                  child: ListView(
+                    primary: false,
+                    physics: const ClampingScrollPhysics(),
+                    children: [
+                      for (int i = 1; i <= 20; i++) _FlutterCard(index: i),
+                    ],
+                  ),
+                )
+              : ListView(
+                  primary: false,
+                  physics: const ClampingScrollPhysics(),
+                  children: [
+                    for (int i = 1; i <= 20; i++) _FlutterCard(index: i),
+                  ],
+                ),
+        ),
+      ),
+
+      // TEST 2: Inner list without BrowserScrollChild (after-only comparison)
+      if (widget.useBrowserScroller)
+        _TestSection(
+          number: 2,
+          title: 'Inner List without BrowserScrollChild',
+          description:
+              'The same inner list as TEST 1 but without the wrapper. '
+              'On desktop and Android Chrome it still chains correctly. '
+              'On iOS Safari the page double-scrolls because the '
+              'browser pans the document while Flutter also scrolls '
+              'the inner list.',
+          color: Colors.indigo,
+          child: SizedBox(
+            height: 400,
             child: ListView(
               primary: false,
               physics: const ClampingScrollPhysics(),
@@ -296,30 +317,39 @@ class _TestPageBodyState extends State<_TestPageBody> {
             ),
           ),
         ),
-      ),
 
-      // TEST 2: Pull-to-refresh at top edge
-      _TestSection(
-        number: 2,
-        title: 'Pull-to-Refresh (RefreshIndicator)',
-        description:
-            'Pull down on this inner list when it is at its top. '
-            'A refresh indicator should appear. Overscroll at the top '
-            'edge is preserved so that RefreshIndicator works. '
-            'At the bottom edge, the inner list clamps and the '
-            'parent page takes over.',
-        color: Colors.cyan,
-        child: const _PullToRefreshTest(),
-      ),
-
-      // TEST 3: Cross-origin iframe (Wikipedia)
+      // TEST 3: Pull-to-refresh at top edge
       _TestSection(
         number: 3,
+        title: 'Pull-to-Refresh (RefreshIndicator)',
+        description: widget.useBrowserScroller
+            ? 'Pull down on this inner list when it is at its top. A '
+                  'refresh indicator should appear. Overscroll at the '
+                  'top edge is preserved so RefreshIndicator works. At '
+                  'the bottom edge, the inner list clamps and the '
+                  'browser-owned parent page takes over.'
+            : 'Pull down on this inner list when it is at its top. A '
+                  'refresh indicator should appear (Flutter handles top-'
+                  'edge overscroll natively). At the bottom edge, the '
+                  'inner list clamps and stops; without '
+                  'flutter_browser_scroll the parent page does not '
+                  'continue scrolling.',
+        color: Colors.cyan,
+        child: _PullToRefreshTest(
+          useBrowserScroller: widget.useBrowserScroller,
+        ),
+      ),
+
+      // TEST 4: Cross-origin iframe (Wikipedia)
+      _TestSection(
+        number: 4,
         title: 'Cross-Origin Iframe (Wikipedia)',
-        description:
-            'Scroll inside the Wikipedia article. '
-            'When it reaches the bottom, the parent page should '
-            'take over and keep scrolling.',
+        description: widget.useBrowserScroller
+            ? 'Scroll inside the Wikipedia article. When it reaches its '
+                  'bottom, the browser-owned parent page takes over and '
+                  'keeps scrolling.'
+            : 'Scroll inside the Wikipedia article. Without '
+                  'flutter_browser_scroll, the scroll chain does not work',
         color: Colors.orange,
         child: const SizedBox(
           height: 400,
@@ -327,29 +357,17 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 4: Wikipedia iframe inside a scrollable div
-      _TestSection(
-        number: 4,
-        title: 'Cross-Origin Iframe in Scrollable Div (Wikipedia)',
-        description:
-            'The Wikipedia page is loaded inside a <div '
-            'overflow:auto> which is itself inside an iframe. Scroll '
-            'inside it to the bottom, then keep scrolling to test '
-            'chained boundary crossing.',
-        color: Colors.deepOrange,
-        child: const SizedBox(
-          height: 400,
-          child: HtmlElementView(viewType: 'wikipedia-in-div'),
-        ),
-      ),
-
-      // TEST 5: Cross-origin iframe (YouTube)
+      // TEST 5: Cross-origin iframe (video embed)
       _TestSection(
         number: 5,
-        title: 'Cross-Origin Iframe (YouTube)',
-        description:
-            'Move your cursor over the video and scroll. '
-            'The page should continue scrolling without getting stuck.',
+        title: 'Cross-Origin Iframe (Video)',
+        description: widget.useBrowserScroller
+            ? 'Scroll while pointing at the embedded video, including '
+                  'over the iframe itself. The browser-owned page keeps '
+                  'scrolling without getting stuck on the embed.'
+            : 'Scroll while pointing at the embedded video, including '
+                  'over the iframe itself. Without flutter_browser_'
+                  'scroll, the page gets stuck on the embed.',
         color: Colors.red,
         child: const SizedBox(
           height: 315,
@@ -361,10 +379,11 @@ class _TestPageBodyState extends State<_TestPageBody> {
       _TestSection(
         number: 6,
         title: 'Same-Origin Scrollable HTML',
-        description:
-            'This HTML div has its own scroll. Scroll inside it to '
-            'the bottom, then keep scrolling. The parent Flutter page should '
-            'take over at the boundary.',
+        description: widget.useBrowserScroller
+            ? 'A same-origin HTML div with overflow:auto. Scroll inside '
+                  'it; when it reaches its boundary, the browser-owned '
+                  'parent page takes over.'
+            : 'A same-origin HTML div with overflow:auto. The inner list does not scroll at all',
         color: Colors.deepPurple,
         child: const SizedBox(
           height: 300,
@@ -376,10 +395,13 @@ class _TestPageBodyState extends State<_TestPageBody> {
       _TestSection(
         number: 7,
         title: 'Keyboard Scroll',
-        description:
-            'Click on the page, then press Page Down, Space, '
-            'or Arrow Down. The browser should handle keyboard scrolling '
-            'on the flutter-view element.',
+        description: widget.useBrowserScroller
+            ? 'Click on the page, then press Page Down, Space, or Arrow '
+                  'Down. The browser handles keyboard scrolling on the '
+                  'flutter-view element.'
+            : 'Click on the page, then press Page Down, Space, or Arrow '
+                  'Down. Without flutter_browser_scroll, Flutter handles '
+                  'keyboard scroll does not work',
         color: Colors.teal,
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -416,16 +438,86 @@ class _TestPageBodyState extends State<_TestPageBody> {
         child: _buildOverlayTests(context),
       ),
 
+      // TEST 9: Programmatic scroll
+      _TestSection(
+        number: 9,
+        title: 'Programmatic Scroll',
+        description: widget.useBrowserScroller
+            ? 'Drive the page from code via BrowserScrollController. '
+                  'jumpTo lands instantly. animateTo uses the browser '
+                  'native smooth scroll, so the duration and curve are '
+                  'approximate.'
+            : 'Drive the page from code via ScrollController. jumpTo '
+                  "lands instantly. animateTo uses Flutter's own "
+                  'animation, so the duration and curve are honored '
+                  'exactly.',
+        color: Colors.amber,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton(
+              onPressed: () => widget.controller.jumpTo(0),
+              child: const Text('jumpTo(0)'),
+            ),
+            OutlinedButton(
+              onPressed: () {
+                final ScrollController c = widget.controller;
+                if (c.hasClients) {
+                  c.jumpTo(c.position.maxScrollExtent);
+                }
+              },
+              child: const Text('jumpTo(max)'),
+            ),
+            OutlinedButton(
+              onPressed: () => widget.controller.animateTo(
+                1500,
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeInOut,
+              ),
+              child: const Text('animateTo(1500)'),
+            ),
+          ],
+        ),
+      ),
+
+      // TEST 10: TextField focus
+      _TestSection(
+        number: 10,
+        title: 'TextField Focus',
+        description: widget.useBrowserScroller
+            ? 'Tap to focus this text field. On mobile the soft '
+                  'keyboard opens. The browser-owned page should still '
+                  'scroll after focus, including from any FAB or '
+                  'programmatic scroll.'
+            : 'Tap to focus this text field. On mobile the soft '
+                  'keyboard opens. Without flutter_browser_scroll, '
+                  'observe whether the Flutter-scrolled page still '
+                  'scrolls after focus.',
+        color: Colors.brown,
+        child: const TextField(
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Tap to focus',
+          ),
+        ),
+      ),
+
       // More content for scrolling
       for (int i = 10; i <= 25; i++) _FlutterCard(index: i),
 
-      // TEST 10: Bottom reached
+      // TEST 11: Bottom reached
       _TestSection(
-        number: 10,
+        number: 11,
         title: 'Bottom Reached',
-        description:
-            'You scrolled to the bottom without getting stuck! '
-            'All scroll boundary crossing scenarios are working.',
+        description: widget.useBrowserScroller
+            ? 'You scrolled to the bottom of the browser-owned page. All '
+                  'scroll boundary crossing scenarios are working with '
+                  'flutter_browser_scroll.'
+            : 'You scrolled to the bottom of the Flutter-scrolled page. '
+                  'Compare with the AFTER demo to see what scroll '
+                  'chaining and iOS Safari touch handling '
+                  'flutter_browser_scroll adds.',
         color: Colors.green,
         status: TestStatus.pass,
         child: const Icon(Icons.check_circle, size: 64, color: Colors.green),
@@ -814,7 +906,9 @@ class _TestSection extends StatelessWidget {
 }
 
 class _PullToRefreshTest extends StatefulWidget {
-  const _PullToRefreshTest();
+  const _PullToRefreshTest({required this.useBrowserScroller});
+
+  final bool useBrowserScroller;
 
   @override
   State<_PullToRefreshTest> createState() => _PullToRefreshTestState();
@@ -834,33 +928,29 @@ class _PullToRefreshTestState extends State<_PullToRefreshTest> {
 
   @override
   Widget build(BuildContext context) {
+    final Widget list = ListView.builder(
+      primary: false,
+      physics: const ClampingScrollPhysics(),
+      itemCount: _items.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          dense: true,
+          leading: Icon(
+            index == 0 && _refreshCount > 0 ? Icons.fiber_new : Icons.circle,
+            size: 16,
+            color: index == 0 && _refreshCount > 0 ? Colors.cyan : Colors.grey,
+          ),
+          title: Text(_items[index]),
+        );
+      },
+    );
     return SizedBox(
       height: 300,
       child: RefreshIndicator(
         onRefresh: _onRefresh,
-        child: BrowserScrollChild(
-          preserveTopOverscroll: true,
-          child: ListView.builder(
-            primary: false,
-            physics: const ClampingScrollPhysics(),
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                dense: true,
-                leading: Icon(
-                  index == 0 && _refreshCount > 0
-                      ? Icons.fiber_new
-                      : Icons.circle,
-                  size: 16,
-                  color: index == 0 && _refreshCount > 0
-                      ? Colors.cyan
-                      : Colors.grey,
-                ),
-                title: Text(_items[index]),
-              );
-            },
-          ),
-        ),
+        child: widget.useBrowserScroller
+            ? BrowserScrollChild(preserveTopOverscroll: true, child: list)
+            : list,
       ),
     );
   }

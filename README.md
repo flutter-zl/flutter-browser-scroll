@@ -12,6 +12,15 @@ This package is web-only. `BrowserScroller` uses web DOM APIs through its defaul
 
 The package is a polyfill-style bridge for browser-driven scrolling while Flutter's engine-level work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), continues to evolve.
 
+## Demo
+
+A comprehensive A/B demo is deployed:
+
+- **After** (package applied): https://flutter-demo-00-after.web.app
+- **Before** (no package, same UI): https://flutter-demo-01-before.web.app
+
+Compare TEST 1 (inner list chaining), TEST 3 (`RefreshIndicator`), and inner-list touch on iOS Safari. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
+
 ## Installation
 
 Until this package is published to pub.dev, add it as a Git dependency:
