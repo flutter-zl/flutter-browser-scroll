@@ -27,7 +27,6 @@ class HomePage extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: BrowserScroller(
-        scrollerApi: JsViewScroller(View.of(context).viewId),
         child: const DefaultTextStyle(
           style: TextStyle(
             fontSize: 14,

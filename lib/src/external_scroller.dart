@@ -18,12 +18,12 @@ class BrowserScroller extends StatefulWidget {
   const BrowserScroller({
     super.key,
     this.controller,
-    required this.scrollerApi,
+    this.scrollerApi,
     required this.child,
   });
 
   final BrowserScrollController? controller;
-  final ExternalScroller scrollerApi;
+  final ExternalScroller? scrollerApi;
   final Widget child;
 
   @override
@@ -108,8 +108,10 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   late final bool _ownsController;
   final PlaceholderHeightTracker _placeholderHeightTracker =
       PlaceholderHeightTracker();
+  ExternalScroller? _ownedScrollerApi;
+  bool _initialized = false;
 
-  ExternalScroller get scrollerApi => widget.scrollerApi;
+  ExternalScroller get scrollerApi => widget.scrollerApi ?? _ownedScrollerApi!;
 
   late ui.Rect visibleRect;
   double _lastReportedHeight = 0;
@@ -122,6 +124,19 @@ class _BrowserScrollerState extends State<BrowserScroller> {
 
     _ownsController = widget.controller == null;
     _scrollController = widget.controller ?? BrowserScrollController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) {
+      return;
+    }
+    _initialized = true;
+
+    _ownedScrollerApi = widget.scrollerApi == null
+        ? JsViewScroller(View.of(context).viewId)
+        : null;
     _scrollController
       ..scrollerApi = scrollerApi
       ..prepareTarget = _prepareForTarget;
@@ -259,6 +274,7 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     if (_ownsController) {
       _scrollController.dispose();
     }
+    _ownedScrollerApi?.dispose();
     super.dispose();
   }
 
