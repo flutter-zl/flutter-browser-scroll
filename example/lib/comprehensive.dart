@@ -269,17 +269,6 @@ class _TestPageBody extends StatefulWidget {
 
 class _TestPageBodyState extends State<_TestPageBody> {
   String _dropdownValue = 'Option A';
-  ExternalScroller? _scrollerApi;
-
-  ExternalScroller _scrollerApiFor(BuildContext context) {
-    return _scrollerApi ??= JsViewScroller(View.of(context).viewId);
-  }
-
-  @override
-  void dispose() {
-    _scrollerApi?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -458,7 +447,6 @@ class _TestPageBodyState extends State<_TestPageBody> {
             controller: widget.controller is BrowserScrollController
                 ? widget.controller as BrowserScrollController
                 : null,
-            scrollerApi: _scrollerApiFor(context),
             child: browserContent,
           )
         : list;

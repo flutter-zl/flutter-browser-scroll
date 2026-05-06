@@ -18,13 +18,21 @@ class BrowserScroller extends StatefulWidget {
   const BrowserScroller({
     super.key,
     this.controller,
-    required this.scrollerApi,
+    this.scrollerApi,
     required this.child,
   });
 
   final BrowserScrollController? controller;
-  final ExternalScroller scrollerApi;
+  final ExternalScroller? scrollerApi;
   final Widget child;
+
+  @visibleForTesting
+  static BrowserScrollController Function() debugControllerFactory =
+      BrowserScrollController.new;
+
+  @visibleForTesting
+  static ExternalScroller Function(int viewId) debugScrollerFactory =
+      JsViewScroller.new;
 
   @override
   State<BrowserScroller> createState() => _BrowserScrollerState();
@@ -108,8 +116,10 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   late final bool _ownsController;
   final PlaceholderHeightTracker _placeholderHeightTracker =
       PlaceholderHeightTracker();
+  ExternalScroller? _ownedScrollerApi;
+  bool _initialized = false;
 
-  ExternalScroller get scrollerApi => widget.scrollerApi;
+  ExternalScroller get scrollerApi => widget.scrollerApi ?? _ownedScrollerApi!;
 
   late ui.Rect visibleRect;
   double _lastReportedHeight = 0;
@@ -121,7 +131,21 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     super.initState();
 
     _ownsController = widget.controller == null;
-    _scrollController = widget.controller ?? BrowserScrollController();
+    _scrollController =
+        widget.controller ?? BrowserScroller.debugControllerFactory();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) {
+      return;
+    }
+    _initialized = true;
+
+    _ownedScrollerApi = widget.scrollerApi == null
+        ? BrowserScroller.debugScrollerFactory(View.of(context).viewId)
+        : null;
     _scrollController
       ..scrollerApi = scrollerApi
       ..prepareTarget = _prepareForTarget;
@@ -242,13 +266,28 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   @override
   void didUpdateWidget(BrowserScroller oldWidget) {
     super.didUpdateWidget(oldWidget);
-    assert(
-      oldWidget.scrollerApi == widget.scrollerApi,
-      'BrowserScroller does not support changing scrollerApi after setup.',
-    );
-    _scrollController
-      ..scrollerApi = scrollerApi
-      ..prepareTarget = _prepareForTarget;
+    if (oldWidget.controller != widget.controller) {
+      throw FlutterError.fromParts(<DiagnosticsNode>[
+        ErrorSummary(
+          'BrowserScroller does not support changing controller after setup.',
+        ),
+        ErrorDescription(
+          'Create a new BrowserScroller with a new key when changing the '
+          'browser scroll controller.',
+        ),
+      ]);
+    }
+    if (oldWidget.scrollerApi != widget.scrollerApi) {
+      throw FlutterError.fromParts(<DiagnosticsNode>[
+        ErrorSummary(
+          'BrowserScroller does not support changing scrollerApi after setup.',
+        ),
+        ErrorDescription(
+          'Create a new BrowserScroller with a new key when changing the '
+          'browser scroll bridge.',
+        ),
+      ]);
+    }
   }
 
   @override
@@ -259,6 +298,7 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     if (_ownsController) {
       _scrollController.dispose();
     }
+    _ownedScrollerApi?.dispose();
     super.dispose();
   }
 

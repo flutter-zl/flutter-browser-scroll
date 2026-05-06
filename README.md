@@ -8,6 +8,8 @@ Built on top of [Mouad Debbar's flutter-browser-scroll](https://github.com/mdebb
 
 ## Status
 
+This package is web-only. `BrowserScroller` uses web DOM APIs through its default `JsViewScroller`, so non-web platforms are not supported.
+
 This repository is a fresh restart. The first baseline is intentionally small and should stay close to the original proof of concept before adding the production pieces from Flutter PR [#184102](https://github.com/flutter/flutter/pull/184102).
 
 The target mental model:
@@ -41,7 +43,7 @@ On iOS Safari, wrap inner Flutter scrollables in `BrowserScrollTouchRegion` for 
 
 ### Basic page
 
-Use `runWidget` with the current Flutter view, then wrap the outer page content in `BrowserScroller`.
+Use `runWidget` with the current Flutter view, then wrap the outer page content in `BrowserScroller`. The widget creates and disposes the default browser scroller for the current Flutter view. That default scroller is bound to the first `View` where the widget is mounted.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -69,7 +71,6 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BrowserScroller(
-      scrollerApi: JsViewScroller(View.of(context).viewId),
       child: Column(
         children: <Widget>[
           for (int i = 0; i < 100; i++) Text('Item $i'),
@@ -82,7 +83,7 @@ class HomePage extends StatelessWidget {
 
 ### Programmatic scroll
 
-Use `BrowserScrollController` when a FAB, button, or service needs to scroll the browser-owned page.
+Use `BrowserScrollController` when a FAB, button, or service needs to scroll the browser-owned page. Pass the controller to `BrowserScroller`, then call the normal `ScrollController` methods.
 
 ```dart
 class HomePage extends StatefulWidget {
@@ -107,7 +108,6 @@ class _HomePageState extends State<HomePage> {
       children: <Widget>[
         BrowserScroller(
           controller: _controller,
-          scrollerApi: JsViewScroller(View.of(context).viewId),
           child: Column(
             children: <Widget>[
               for (int i = 0; i < 100; i++) Text('Item $i'),
@@ -140,7 +140,6 @@ When you place a Flutter `ListView` or other scrollable inside the browser-scrol
 
 ```dart
 BrowserScroller(
-  scrollerApi: JsViewScroller(View.of(context).viewId),
   child: Column(
     children: <Widget>[
       SizedBox(
@@ -161,7 +160,48 @@ BrowserScroller(
 )
 ```
 
-## Next Features
+### Advanced custom scroller
+
+Most apps can omit `scrollerApi`. Pass one only when a widget test needs a fake scroller or an embedder scrolls a custom container instead of `window`. `BrowserScroller` calls `setup()` for the provided scroller. When you create the scroller, you also dispose it.
+
+```dart
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  ExternalScroller? _customScroller;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _customScroller ??= JsViewScroller(View.of(context).viewId);
+  }
+
+  @override
+  void dispose() {
+    _customScroller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BrowserScroller(
+      scrollerApi: _customScroller!,
+      child: Column(
+        children: <Widget>[
+          for (int i = 0; i < 100; i++) Text('Item $i'),
+        ],
+      ),
+    );
+  }
+}
+```
+
+## Implemented pieces
 
 - Revealed-content placeholder height for lazy Flutter lists.
 - `animateTo` and `jumpTo` delegation to browser scroll.
