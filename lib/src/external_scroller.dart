@@ -42,10 +42,23 @@ class BrowserScrollTouchRegion extends StatefulWidget {
   const BrowserScrollTouchRegion({
     super.key,
     this.scrollerApi,
+    this.forwardTopOverscroll = false,
     required this.child,
   });
 
   final ExternalScroller? scrollerApi;
+
+  /// Whether top-edge overscroll inside this region should chain to the
+  /// browser-owned parent page.
+  ///
+  /// Keep this false when the inner scrollable hosts a [RefreshIndicator], so
+  /// pull-down overscroll can arm the refresh instead of scrolling the page.
+  /// Set it to true for plain inner scrollables that should let pull-down
+  /// gestures at the top continue scrolling the parent page.
+  ///
+  /// [BrowserScroller] reads this value when deciding whether to forward an
+  /// [OverscrollNotification] from a descendant scrollable.
+  final bool forwardTopOverscroll;
   final Widget child;
 
   @override
@@ -76,18 +89,43 @@ class _BrowserScrollTouchRegionState extends State<BrowserScrollTouchRegion> {
   @override
   Widget build(BuildContext context) {
     _scrollerApi = _scrollerApiFor(context);
-    return Listener(
-      onPointerDown: (_) {
-        _scrollerApi!.setNativePanBlocked(true);
-      },
-      onPointerUp: (_) {
-        _scrollerApi!.setNativePanBlocked(false);
-      },
-      onPointerCancel: (_) {
-        _scrollerApi!.setNativePanBlocked(false);
-      },
-      child: widget.child,
+    return _BrowserScrollTouchRegionScope(
+      forwardTopOverscroll: widget.forwardTopOverscroll,
+      child: Listener(
+        onPointerDown: (_) {
+          _scrollerApi!.setNativePanBlocked(true);
+        },
+        onPointerUp: (_) {
+          _scrollerApi!.setNativePanBlocked(false);
+        },
+        onPointerCancel: (_) {
+          _scrollerApi!.setNativePanBlocked(false);
+        },
+        child: widget.child,
+      ),
     );
+  }
+}
+
+class _BrowserScrollTouchRegionScope extends InheritedWidget {
+  const _BrowserScrollTouchRegionScope({
+    required this.forwardTopOverscroll,
+    required super.child,
+  });
+
+  final bool forwardTopOverscroll;
+
+  static bool shouldForwardTopOverscroll(BuildContext? context) {
+    final scope = context
+        ?.getElementForInheritedWidgetOfExactType<
+            _BrowserScrollTouchRegionScope>()
+        ?.widget as _BrowserScrollTouchRegionScope?;
+    return scope?.forwardTopOverscroll ?? false;
+  }
+
+  @override
+  bool updateShouldNotify(_BrowserScrollTouchRegionScope oldWidget) {
+    return oldWidget.forwardTopOverscroll != forwardTopOverscroll;
   }
 }
 
@@ -238,6 +276,11 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       pixels: notification.metrics.pixels,
       minScrollExtent: notification.metrics.minScrollExtent,
       maxScrollExtent: notification.metrics.maxScrollExtent,
+      forwardTopOverscroll:
+          _BrowserScrollTouchRegionScope.shouldForwardTopOverscroll(
+                notification.context,
+              ) &&
+              notification.dragDetails != null,
     );
     if (shouldForward) {
       _forwardOverscroll(notification.overscroll);

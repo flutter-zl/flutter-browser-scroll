@@ -289,6 +289,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
         child: SizedBox(
           height: 400,
           child: BrowserScrollTouchRegion(
+            forwardTopOverscroll: true,
             child: ListView(
               primary: false,
               physics: const ClampingScrollPhysics(),

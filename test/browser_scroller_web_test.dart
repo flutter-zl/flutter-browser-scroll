@@ -154,14 +154,79 @@ void main() {
       expect(scroller.setupCount, 1);
       expect(scroller.disposeCount, 1);
     });
+
+    testWidgets('opt-in forwards top-edge overscroll to scroller', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          child: BrowserScrollTouchRegion(
+            forwardTopOverscroll: true,
+            child: Builder(
+              builder: (BuildContext context) {
+                return const SizedBox(
+                  key: ValueKey<String>('opt-in-target'),
+                  width: 800,
+                  height: 100,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      _dispatchTopEdgeOverscroll(
+        tester.element(find.byKey(const ValueKey<String>('opt-in-target'))),
+      );
+      await tester.pump();
+
+      expect(scroller.scrollByCalls, <double>[-20]);
+    });
+
+    testWidgets('default preserves top-edge overscroll', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          child: Builder(
+            builder: (BuildContext context) {
+              return const SizedBox(
+                key: ValueKey<String>('default-target'),
+                width: 800,
+                height: 100,
+              );
+            },
+          ),
+        ),
+      );
+
+      _dispatchTopEdgeOverscroll(
+        tester.element(find.byKey(const ValueKey<String>('default-target'))),
+      );
+      await tester.pump();
+
+      expect(scroller.scrollByCalls, isEmpty);
+    });
   });
 }
 
 class _TestHost extends StatelessWidget {
-  const _TestHost({super.key, required this.scrollerApi, this.controller});
+  const _TestHost({
+    super.key,
+    required this.scrollerApi,
+    this.controller,
+    this.child = const SizedBox(width: 800, height: 1200),
+  });
 
   final ExternalScroller scrollerApi;
   final BrowserScrollController? controller;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -172,11 +237,27 @@ class _TestHost extends StatelessWidget {
         child: BrowserScroller(
           controller: controller,
           scrollerApi: scrollerApi,
-          child: const SizedBox(width: 800, height: 1200),
+          child: child,
         ),
       ),
     );
   }
+}
+
+void _dispatchTopEdgeOverscroll(BuildContext context) {
+  OverscrollNotification(
+    metrics: FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 100,
+      pixels: 0,
+      viewportDimension: 600,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1,
+    ),
+    context: context,
+    overscroll: -20,
+    dragDetails: DragUpdateDetails(globalPosition: Offset.zero),
+  ).dispatch(context);
 }
 
 class _DefaultTestHost extends StatelessWidget {
@@ -211,6 +292,7 @@ class _FakeExternalScroller implements ExternalScroller {
   int disposeCount = 0;
   int scrollListenerCount = 0;
   int visibleRectListenerCount = 0;
+  final List<double> scrollByCalls = <double>[];
 
   @override
   double get scrollTop => 0;
@@ -239,7 +321,9 @@ class _FakeExternalScroller implements ExternalScroller {
   Future<void> scrollTo(double offset, {bool smooth = false}) async {}
 
   @override
-  void scrollBy(double delta) {}
+  void scrollBy(double delta) {
+    scrollByCalls.add(delta);
+  }
 
   @override
   void setNativePanBlocked(bool blocked) {}

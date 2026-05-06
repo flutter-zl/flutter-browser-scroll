@@ -138,6 +138,8 @@ class _HomePageState extends State<HomePage> {
 
 When you place a Flutter `ListView` or other scrollable inside the browser-scrolled page, wrap it in `BrowserScrollTouchRegion`. This prevents iOS Safari from panning the document while Flutter is already handling the inner scrollable gesture. At the bottom edge, overscroll is forwarded to the browser-owned parent page.
 
+For a plain inner scrollable, set `forwardTopOverscroll: true` if pull-down gestures at the top should continue scrolling the parent page. Leave it false for scrollables with `RefreshIndicator`, so top-edge overscroll can arm refresh instead of chaining to the page.
+
 ```dart
 BrowserScroller(
   child: Column(
@@ -145,6 +147,7 @@ BrowserScroller(
       SizedBox(
         height: 400,
         child: BrowserScrollTouchRegion(
+          forwardTopOverscroll: true,
           child: ListView.builder(
             primary: false,
             physics: const ClampingScrollPhysics(),

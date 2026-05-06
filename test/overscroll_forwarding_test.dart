@@ -48,6 +48,19 @@ void main() {
       );
     });
 
+    test('forwards top-edge overscroll when opted in', () {
+      expect(
+        shouldForwardOverscroll(
+          overscroll: -20,
+          pixels: 0,
+          minScrollExtent: 0,
+          maxScrollExtent: 100,
+          forwardTopOverscroll: true,
+        ),
+        isTrue,
+      );
+    });
+
     test('forwards positive overscroll at bottom edge', () {
       expect(
         shouldForwardOverscroll(
