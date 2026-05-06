@@ -17,7 +17,7 @@ The package is a polyfill-style bridge for browser-driven scrolling while Flutte
 A comprehensive A/B demo is deployed:
 
 - **After** (package applied): https://flutter-demo-00-after.web.app
-- **Before** (no package, same UI): https://flutter-demo-01-before.web.app
+- **Before** (no package, same UI): https://flutter-demo-00-before.web.app
 
 Compare TEST 1 (inner list chaining), TEST 3 (`RefreshIndicator`), and inner-list touch on iOS Safari. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
 
