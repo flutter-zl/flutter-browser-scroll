@@ -155,7 +155,7 @@ void main() {
       expect(scroller.disposeCount, 1);
     });
 
-    testWidgets('opt-in forwards top-edge overscroll to scroller', (
+    testWidgets('BrowserScrollChild forwards top-edge overscroll by default', (
       WidgetTester tester,
     ) async {
       final scroller = _FakeExternalScroller();
@@ -163,12 +163,11 @@ void main() {
       await tester.pumpWidget(
         _TestHost(
           scrollerApi: scroller,
-          child: BrowserScrollTouchRegion(
-            forwardTopOverscroll: true,
+          child: BrowserScrollChild(
             child: Builder(
               builder: (BuildContext context) {
                 return const SizedBox(
-                  key: ValueKey<String>('opt-in-target'),
+                  key: ValueKey<String>('default-region-target'),
                   width: 800,
                   height: 100,
                 );
@@ -179,14 +178,47 @@ void main() {
       );
 
       _dispatchTopEdgeOverscroll(
-        tester.element(find.byKey(const ValueKey<String>('opt-in-target'))),
+        tester.element(
+          find.byKey(const ValueKey<String>('default-region-target')),
+        ),
       );
       await tester.pump();
 
       expect(scroller.scrollByCalls, <double>[-20]);
     });
 
-    testWidgets('default preserves top-edge overscroll', (
+    testWidgets('preserveTopOverscroll keeps top-edge overscroll inner', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          child: BrowserScrollChild(
+            preserveTopOverscroll: true,
+            child: Builder(
+              builder: (BuildContext context) {
+                return const SizedBox(
+                  key: ValueKey<String>('preserve-target'),
+                  width: 800,
+                  height: 100,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      _dispatchTopEdgeOverscroll(
+        tester.element(find.byKey(const ValueKey<String>('preserve-target'))),
+      );
+      await tester.pump();
+
+      expect(scroller.scrollByCalls, isEmpty);
+    });
+
+    testWidgets('bare BrowserScroller forwards top-edge overscroll', (
       WidgetTester tester,
     ) async {
       final scroller = _FakeExternalScroller();
@@ -197,7 +229,7 @@ void main() {
           child: Builder(
             builder: (BuildContext context) {
               return const SizedBox(
-                key: ValueKey<String>('default-target'),
+                key: ValueKey<String>('bare-target'),
                 width: 800,
                 height: 100,
               );
@@ -207,11 +239,11 @@ void main() {
       );
 
       _dispatchTopEdgeOverscroll(
-        tester.element(find.byKey(const ValueKey<String>('default-target'))),
+        tester.element(find.byKey(const ValueKey<String>('bare-target'))),
       );
       await tester.pump();
 
-      expect(scroller.scrollByCalls, isEmpty);
+      expect(scroller.scrollByCalls, <double>[-20]);
     });
   });
 }

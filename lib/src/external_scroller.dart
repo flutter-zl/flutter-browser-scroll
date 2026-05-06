@@ -38,35 +38,45 @@ class BrowserScroller extends StatefulWidget {
   State<BrowserScroller> createState() => _BrowserScrollerState();
 }
 
-class BrowserScrollTouchRegion extends StatefulWidget {
-  const BrowserScrollTouchRegion({
+/// Marks an inner Flutter scrollable as a child of a browser-scrolled page.
+///
+/// This is required on iOS Safari to prevent the browser from natively panning
+/// the document while a Flutter inner scrollable handles the same touch. A
+/// `BrowserScrollPhysics` spike showed that making the outer [BrowserScroller]
+/// participate in Flutter's gesture arena is not enough: iOS Safari's native
+/// pan decision is independent of Flutter's gesture arena, so both systems can
+/// scroll simultaneously. See `docs/spikes/browser-scroll-physics-spike.md`
+/// for details. Flutter's engine-level browser scrolling work, such as
+/// https://github.com/flutter/flutter/pull/184102, can solve this lower in the
+/// stack. This package uses an explicit marker instead.
+class BrowserScrollChild extends StatefulWidget {
+  const BrowserScrollChild({
     super.key,
     this.scrollerApi,
-    this.forwardTopOverscroll = false,
+    this.preserveTopOverscroll = false,
     required this.child,
   });
 
   final ExternalScroller? scrollerApi;
 
-  /// Whether top-edge overscroll inside this region should chain to the
-  /// browser-owned parent page.
+  /// Whether top-edge overscroll inside this region should stay with the inner
+  /// scrollable instead of chaining to the browser-owned page.
   ///
-  /// Keep this false when the inner scrollable hosts a [RefreshIndicator], so
-  /// pull-down overscroll can arm the refresh instead of scrolling the page.
-  /// Set it to true for plain inner scrollables that should let pull-down
-  /// gestures at the top continue scrolling the parent page.
+  /// Set this when the inner scrollable owns top-edge gestures, for example
+  /// when it hosts a [RefreshIndicator]. Leave it false for plain inner
+  /// scrollables that should let pull-down gestures at the top continue
+  /// scrolling the parent page.
   ///
   /// [BrowserScroller] reads this value when deciding whether to forward an
   /// [OverscrollNotification] from a descendant scrollable.
-  final bool forwardTopOverscroll;
+  final bool preserveTopOverscroll;
   final Widget child;
 
   @override
-  State<BrowserScrollTouchRegion> createState() =>
-      _BrowserScrollTouchRegionState();
+  State<BrowserScrollChild> createState() => _BrowserScrollChildState();
 }
 
-class _BrowserScrollTouchRegionState extends State<BrowserScrollTouchRegion> {
+class _BrowserScrollChildState extends State<BrowserScrollChild> {
   ExternalScroller? _scrollerApi;
 
   ExternalScroller _scrollerApiFor(BuildContext context) {
@@ -74,7 +84,7 @@ class _BrowserScrollTouchRegionState extends State<BrowserScrollTouchRegion> {
         widget.scrollerApi ?? _BrowserScrollScope.maybeOf(context);
     assert(
       scrollerApi != null,
-      'BrowserScrollTouchRegion must be below BrowserScroller or provide '
+      'BrowserScrollChild must be below BrowserScroller or provide '
       'an explicit scrollerApi.',
     );
     return scrollerApi!;
@@ -89,8 +99,8 @@ class _BrowserScrollTouchRegionState extends State<BrowserScrollTouchRegion> {
   @override
   Widget build(BuildContext context) {
     _scrollerApi = _scrollerApiFor(context);
-    return _BrowserScrollTouchRegionScope(
-      forwardTopOverscroll: widget.forwardTopOverscroll,
+    return _BrowserScrollChildScope(
+      preserveTopOverscroll: widget.preserveTopOverscroll,
       child: Listener(
         onPointerDown: (_) {
           _scrollerApi!.setNativePanBlocked(true);
@@ -107,25 +117,24 @@ class _BrowserScrollTouchRegionState extends State<BrowserScrollTouchRegion> {
   }
 }
 
-class _BrowserScrollTouchRegionScope extends InheritedWidget {
-  const _BrowserScrollTouchRegionScope({
-    required this.forwardTopOverscroll,
+class _BrowserScrollChildScope extends InheritedWidget {
+  const _BrowserScrollChildScope({
+    required this.preserveTopOverscroll,
     required super.child,
   });
 
-  final bool forwardTopOverscroll;
+  final bool preserveTopOverscroll;
 
-  static bool shouldForwardTopOverscroll(BuildContext? context) {
+  static bool shouldPreserveTopOverscroll(BuildContext? context) {
     final scope = context
-        ?.getElementForInheritedWidgetOfExactType<
-            _BrowserScrollTouchRegionScope>()
-        ?.widget as _BrowserScrollTouchRegionScope?;
-    return scope?.forwardTopOverscroll ?? false;
+        ?.getElementForInheritedWidgetOfExactType<_BrowserScrollChildScope>()
+        ?.widget as _BrowserScrollChildScope?;
+    return scope?.preserveTopOverscroll ?? false;
   }
 
   @override
-  bool updateShouldNotify(_BrowserScrollTouchRegionScope oldWidget) {
-    return oldWidget.forwardTopOverscroll != forwardTopOverscroll;
+  bool updateShouldNotify(_BrowserScrollChildScope oldWidget) {
+    return oldWidget.preserveTopOverscroll != preserveTopOverscroll;
   }
 }
 
@@ -276,11 +285,11 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       pixels: notification.metrics.pixels,
       minScrollExtent: notification.metrics.minScrollExtent,
       maxScrollExtent: notification.metrics.maxScrollExtent,
-      forwardTopOverscroll:
-          _BrowserScrollTouchRegionScope.shouldForwardTopOverscroll(
-                notification.context,
-              ) &&
-              notification.dragDetails != null,
+      preserveTopOverscroll:
+          _BrowserScrollChildScope.shouldPreserveTopOverscroll(
+        notification.context,
+      ),
+      isActiveDrag: notification.dragDetails != null,
     );
     if (shouldForward) {
       _forwardOverscroll(notification.overscroll);

@@ -37,7 +37,7 @@ No platform-view scroll reimplementation. No wheel interception. The package onl
 
 The package also includes a narrow platform-view and iframe carve-out in its iOS touch guard. This prevents the package from blocking native touch behavior inside embedded DOM content while still avoiding double-scroll for marked inner Flutter scrollables.
 
-On iOS Safari, wrap inner Flutter scrollables in `BrowserScrollTouchRegion` for reliable touch handoff. The package also has a semantics-based fallback for unmarked inner scrollables, which requires `SemanticsBinding.instance.ensureSemantics()` and may miss inner scrollables that lack the `flt-semantics-scroll-overflow` marker.
+If your app targets desktop and Android Chrome, plain inner `ListView`s already chain to the page for free. On iOS Safari, wrap inner scrollables in `BrowserScrollChild` until Flutter's engine-level browser scrolling integration, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), lands.
 
 ## Usage
 
@@ -136,9 +136,11 @@ class _HomePageState extends State<HomePage> {
 
 ### Inner Flutter scrollables on iOS
 
-When you place a Flutter `ListView` or other scrollable inside the browser-scrolled page, wrap it in `BrowserScrollTouchRegion`. This prevents iOS Safari from panning the document while Flutter is already handling the inner scrollable gesture. At the bottom edge, overscroll is forwarded to the browser-owned parent page.
+When you place a Flutter `ListView` or other scrollable inside the browser-scrolled page, wrap it in `BrowserScrollChild`. This prevents iOS Safari from panning the document while Flutter is already handling the inner scrollable gesture. At the bottom edge, overscroll is forwarded to the browser-owned parent page.
 
-For a plain inner scrollable, set `forwardTopOverscroll: true` if pull-down gestures at the top should continue scrolling the parent page. Leave it false for scrollables with `RefreshIndicator`, so top-edge overscroll can arm refresh instead of chaining to the page.
+Use `BrowserScrollChild` only for inner Flutter scrollables such as `ListView`, `GridView`, or `CustomScrollView`. You do not need it for the outer page, plain non-scrollable content, or native DOM/platform-view scrollables such as iframes.
+
+For a plain inner scrollable, top-edge and bottom-edge overscroll chain to the parent page by default. For scrollables with `RefreshIndicator`, set `preserveTopOverscroll: true` so top-edge overscroll can arm refresh instead of chaining to the page.
 
 ```dart
 BrowserScroller(
@@ -146,8 +148,7 @@ BrowserScroller(
     children: <Widget>[
       SizedBox(
         height: 400,
-        child: BrowserScrollTouchRegion(
-          forwardTopOverscroll: true,
+        child: BrowserScrollChild(
           child: ListView.builder(
             primary: false,
             physics: const ClampingScrollPhysics(),
@@ -159,6 +160,25 @@ BrowserScroller(
         ),
       ),
     ],
+  ),
+)
+```
+
+For a pull-to-refresh list:
+
+```dart
+RefreshIndicator(
+  onRefresh: _onRefresh,
+  child: BrowserScrollChild(
+    preserveTopOverscroll: true,
+    child: ListView.builder(
+      primary: false,
+      physics: const ClampingScrollPhysics(),
+      itemCount: 50,
+      itemBuilder: (BuildContext context, int index) {
+        return ListTile(title: Text('Refresh item $index'));
+      },
+    ),
   ),
 )
 ```

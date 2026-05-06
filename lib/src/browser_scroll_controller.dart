@@ -18,7 +18,12 @@ class BrowserScrollController extends ScrollController {
   }
 
   void syncFromBrowser(double offset) {
-    super.jumpTo(offset);
+    if (!hasClients) {
+      return;
+    }
+    // Browser scroll events should not cancel an active drag activity.
+    // ignore: invalid_use_of_protected_member
+    positions.first.forcePixels(offset);
   }
 
   @override

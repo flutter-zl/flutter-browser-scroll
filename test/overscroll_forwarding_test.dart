@@ -36,28 +36,41 @@ void main() {
       );
     });
 
-    test('preserves notifications at exact top edge', () {
+    test('forwards top-edge overscroll by default', () {
       expect(
         shouldForwardOverscroll(
           overscroll: -20,
           pixels: 0,
           minScrollExtent: 0,
           maxScrollExtent: 100,
+        ),
+        isTrue,
+      );
+    });
+
+    test('preserves top-edge overscroll when opted in', () {
+      expect(
+        shouldForwardOverscroll(
+          overscroll: -20,
+          pixels: 0,
+          minScrollExtent: 0,
+          maxScrollExtent: 100,
+          preserveTopOverscroll: true,
         ),
         isFalse,
       );
     });
 
-    test('forwards top-edge overscroll when opted in', () {
+    test('does not forward top-edge ballistic overscroll', () {
       expect(
         shouldForwardOverscroll(
           overscroll: -20,
           pixels: 0,
           minScrollExtent: 0,
           maxScrollExtent: 100,
-          forwardTopOverscroll: true,
+          isActiveDrag: false,
         ),
-        isTrue,
+        isFalse,
       );
     });
 

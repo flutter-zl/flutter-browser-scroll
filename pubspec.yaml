@@ -1,6 +1,6 @@
 name: flutter_browser_scroll
 description: "Let the browser own the outermost scroll on Flutter Web. Experimental."
-version: 0.0.1
+version: 0.1.0
 homepage: https://github.com/flutter-zl/flutter-browser-scroll
 
 environment:

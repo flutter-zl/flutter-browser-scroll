@@ -288,8 +288,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
         status: TestStatus.pending,
         child: SizedBox(
           height: 400,
-          child: BrowserScrollTouchRegion(
-            forwardTopOverscroll: true,
+          child: BrowserScrollChild(
             child: ListView(
               primary: false,
               physics: const ClampingScrollPhysics(),
@@ -839,7 +838,8 @@ class _PullToRefreshTestState extends State<_PullToRefreshTest> {
       height: 300,
       child: RefreshIndicator(
         onRefresh: _onRefresh,
-        child: BrowserScrollTouchRegion(
+        child: BrowserScrollChild(
+          preserveTopOverscroll: true,
           child: ListView.builder(
             primary: false,
             physics: const ClampingScrollPhysics(),
