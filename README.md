@@ -12,6 +12,18 @@ This package is web-only. `BrowserScroller` uses web DOM APIs through its defaul
 
 The package is a polyfill-style bridge for browser-driven scrolling while Flutter's engine-level work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), continues to evolve.
 
+## Installation
+
+Until this package is published to pub.dev, add it as a Git dependency:
+
+```yaml
+dependencies:
+  flutter_browser_scroll:
+    git:
+      url: https://github.com/flutter-zl/flutter-browser-scroll.git
+      ref: main
+```
+
 The target mental model:
 
 ```
@@ -140,7 +152,12 @@ When you place a Flutter `ListView` or other scrollable inside the browser-scrol
 
 Use `BrowserScrollChild` only for inner Flutter scrollables such as `ListView`, `GridView`, or `CustomScrollView`. You do not need it for the outer page, plain non-scrollable content, or native DOM/platform-view scrollables such as iframes.
 
-For a plain inner scrollable, top-edge and bottom-edge overscroll chain to the parent page by default. Top-edge overscroll forwards only during active drag, so ballistic bounce-back from a settle is not forwarded. Bottom-edge overscroll currently forwards both drag and ballistic deltas. For scrollables with `RefreshIndicator`, set `preserveTopOverscroll: true` so top-edge overscroll can arm refresh instead of chaining to the page.
+For a plain inner scrollable, top-edge and bottom-edge overscroll chain to the parent page by default:
+
+- Top-edge overscroll forwards only during active drag, so ballistic bounce-back from a settle is not forwarded.
+- Bottom-edge overscroll currently forwards both drag and ballistic deltas.
+
+For scrollables with `RefreshIndicator`, set `preserveTopOverscroll: true` so top-edge overscroll can arm refresh instead of chaining to the page.
 
 ```dart
 BrowserScroller(

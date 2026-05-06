@@ -45,7 +45,7 @@ class BrowserScroller extends StatefulWidget {
 /// `BrowserScrollPhysics` spike showed that making the outer [BrowserScroller]
 /// participate in Flutter's gesture arena is not enough: iOS Safari's native
 /// pan decision is independent of Flutter's gesture arena, so both systems can
-/// scroll simultaneously. See `docs/spikes/browser-scroll-physics-spike.md`
+/// scroll simultaneously. See `doc/spikes/browser-scroll-physics-spike.md`
 /// for details. Flutter's engine-level browser scrolling work, such as
 /// https://github.com/flutter/flutter/pull/184102, can solve this lower in the
 /// stack. This package uses an explicit marker instead.
