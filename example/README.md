@@ -1,17 +1,32 @@
-# flutter_browser_scroll_example
+# flutter_browser_scroll example
 
-A new Flutter project.
+Sample apps for `flutter_browser_scroll`.
 
-## Getting Started
+## Run locally
 
-This project is a starting point for a Flutter application.
+From the package root:
 
-A few resources to get you started if this is your first Flutter project:
+```
+cd example
+flutter pub get
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Then pick one entry to run:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Minimal page** wrapped in `BrowserScroller`:
+  ```
+  flutter run -d chrome -t lib/main.dart
+  ```
+- **Full test suite** with the package applied:
+  ```
+  flutter run -d chrome -t lib/comprehensive.dart
+  ```
+- **Same UI without the package** for comparison:
+  ```
+  flutter run -d chrome -t lib/comprehensive_before.dart
+  ```
+
+## Deployed demos
+
+- After (package applied): https://flutter-demo-00-after.web.app
+- Before (no package): https://flutter-demo-00-before.web.app
