@@ -304,7 +304,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
           description:
               'The same inner list as TEST 1 but without the wrapper. '
               'On desktop and Android Chrome it still chains correctly. '
-              'On iOS Safari the page double-scrolls because the '
+              'On iOS Safari/Chrome the page double-scrolls because the '
               'browser pans the document while Flutter also scrolls '
               'the inner list.',
           color: Colors.indigo,
@@ -481,34 +481,12 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 10: TextField focus
-      _TestSection(
-        number: 10,
-        title: 'TextField Focus',
-        description: widget.useBrowserScroller
-            ? 'Tap to focus this text field. On mobile the soft '
-                  'keyboard opens. The browser-owned page should still '
-                  'scroll after focus, including from any FAB or '
-                  'programmatic scroll.'
-            : 'Tap to focus this text field. On mobile the soft '
-                  'keyboard opens. Without flutter_browser_scroll, '
-                  'observe whether the Flutter-scrolled page still '
-                  'scrolls after focus.',
-        color: Colors.brown,
-        child: const TextField(
-          decoration: InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Tap to focus',
-          ),
-        ),
-      ),
-
       // More content for scrolling
       for (int i = 10; i <= 25; i++) _FlutterCard(index: i),
 
-      // TEST 11: Bottom reached
+      // TEST 10: Bottom reached
       _TestSection(
-        number: 11,
+        number: 10,
         title: 'Bottom Reached',
         description: widget.useBrowserScroller
             ? 'You scrolled to the bottom of the browser-owned page. All '

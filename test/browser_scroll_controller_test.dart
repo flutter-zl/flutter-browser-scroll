@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_browser_scroll/src/browser_scroll_controller.dart';
+import 'package:flutter_browser_scroll/src/external_scroller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
