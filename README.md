@@ -65,14 +65,14 @@ Once Flutter's engine-level browser scrolling work, such as [flutter/flutter#184
 
 ### Basic page
 
-Use `runWidget` with the current Flutter view, then wrap the outer page content in `BrowserScroller`. The widget creates and disposes the default browser scroller for the current Flutter view. That default scroller is bound to the current Flutter `View` from `View.of(context)`.
+Wrap your scrollable page content in `BrowserScroller`.
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 
 void main() {
-  runWidget(const MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -80,23 +80,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return View(
-      view: WidgetsBinding.instance.platformDispatcher.views.first,
-      child: const HomePage(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BrowserScroller(
-      child: Column(
-        children: <Widget>[
-          for (int i = 0; i < 100; i++) Text('Item $i'),
-        ],
+    return MaterialApp(
+      home: Scaffold(
+        body: BrowserScroller(
+          child: Column(
+            children: <Widget>[
+              for (int i = 0; i < 100; i++) ListTile(title: Text('Item $i')),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -105,17 +97,17 @@ class HomePage extends StatelessWidget {
 
 ### Programmatic scroll
 
-Use `BrowserScrollController` when a FAB, button, or service needs to scroll the browser-owned page. Pass the controller to `BrowserScroller`, then call the normal `ScrollController` methods.
+When a button or other widget needs to scroll the page, pass a `BrowserScrollController` to `BrowserScroller`. It works like a normal `ScrollController`.
 
 ```dart
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<MyApp> createState() => _MyAppState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _MyAppState extends State<MyApp> {
   final BrowserScrollController _controller = BrowserScrollController();
 
   @override
@@ -126,31 +118,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        BrowserScroller(
+    return MaterialApp(
+      home: Scaffold(
+        body: BrowserScroller(
           controller: _controller,
           child: Column(
             children: <Widget>[
-              for (int i = 0; i < 100; i++) Text('Item $i'),
+              for (int i = 0; i < 100; i++) ListTile(title: Text('Item $i')),
             ],
           ),
         ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: () {
-              _controller.animateTo(
-                0,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            },
-            child: const Icon(Icons.arrow_upward),
-          ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            _controller.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          },
+          child: const Icon(Icons.arrow_upward),
         ),
-      ],
+      ),
     );
   }
 }
@@ -158,16 +146,11 @@ class _HomePageState extends State<HomePage> {
 
 ### Inner Flutter scrollables on iOS
 
-When you place a Flutter `ListView` or other scrollable inside the browser-scrolled page, wrap it in `BrowserScrollChild`. This prevents iOS Safari from panning the document while Flutter is already handling the inner scrollable gesture. At the bottom edge, overscroll is forwarded to the browser-owned parent page.
+Wrap inner Flutter scrollables, such as `ListView`, `GridView`, or `CustomScrollView`, in `BrowserScrollChild`. This stops iOS Safari from panning the page while Flutter handles the inner gesture. By default, overscroll at either edge chains to the page.
 
-Use `BrowserScrollChild` only for inner Flutter scrollables such as `ListView`, `GridView`, or `CustomScrollView`. You do not need it for the outer page, plain non-scrollable content, or native DOM/platform-view scrollables such as iframes.
+Do not wrap iframes, platform views, or non-scrollable content.
 
-For a plain inner scrollable, top-edge and bottom-edge overscroll chain to the parent page by default:
-
-- Top-edge overscroll forwards only during active drag, so ballistic bounce-back from a settle is not forwarded.
-- Bottom-edge overscroll currently forwards both drag and ballistic deltas.
-
-For scrollables with `RefreshIndicator`, set `preserveTopOverscroll: true` so top-edge overscroll can arm refresh instead of chaining to the page.
+If the inner scrollable hosts a `RefreshIndicator`, pass `preserveTopOverscroll: true` so a pull-down arms refresh instead of scrolling the page.
 
 ```dart
 BrowserScroller(
@@ -208,47 +191,6 @@ RefreshIndicator(
     ),
   ),
 )
-```
-
-### Advanced custom scroller
-
-Most apps can omit `scrollerApi`. Pass one only when a widget test needs a fake scroller or an embedder scrolls a custom container instead of `window`. `BrowserScroller` calls `setup()` for the provided scroller. When you create the scroller, you also dispose it.
-
-```dart
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  ExternalScroller? _customScroller;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _customScroller ??= JsViewScroller(View.of(context).viewId);
-  }
-
-  @override
-  void dispose() {
-    _customScroller?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BrowserScroller(
-      scrollerApi: _customScroller!,
-      child: Column(
-        children: <Widget>[
-          for (int i = 0; i < 100; i++) Text('Item $i'),
-        ],
-      ),
-    );
-  }
-}
 ```
 
 ## Features
