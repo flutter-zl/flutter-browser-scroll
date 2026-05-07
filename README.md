@@ -49,14 +49,10 @@ No platform-view scroll reimplementation. No wheel interception. The package onl
 
 ## Current API caveats
 
-`BrowserScrollController` delegates document movement to the browser. It is close to `ScrollController`, but it is not a perfect drop-in replacement for every timing and notification contract:
+`BrowserScrollController` delegates document movement to the browser. It is close to `ScrollController`, but browser-owned scrolling has a few important differences:
 
-- `jumpTo` updates Flutter's attached scroll position synchronously when one exists, then asks the browser to move the document.
 - `animateTo` uses browser smooth scrolling for non-zero durations. The browser chooses the exact timing and curve, so custom Flutter `Duration` and `Curve` values are not honored exactly.
-- The returned `animateTo` future resolves when the browser reaches the target, appears idle, is superseded, or hits a timeout.
-- Programmatic browser scrolls do not synthesize the same `ScrollStartNotification` and `ScrollEndNotification` sequence as Flutter-driven animations. Widgets or app code that depend on those notifications, such as auto-hiding `Scrollbar`s, scroll-aware FABs, or custom refresh/load indicators, may not observe programmatic browser scroll start/end.
-
-The package also includes a narrow platform-view and iframe carve-out in its iOS touch guard. This prevents the package from blocking native touch behavior inside embedded DOM content while still avoiding double-scroll for marked inner Flutter scrollables.
+- Browser-driven smooth scroll and browser scroll sync do not synthesize the same `ScrollStartNotification` and `ScrollEndNotification` sequence as Flutter-driven animations. Widgets or app code that depend on those notifications, such as auto-hiding `Scrollbar`s, scroll-aware FABs, or custom refresh/load indicators, may not observe browser-driven scroll start/end.
 
 If your app targets desktop and Android Chrome, plain inner `ListView`s already chain to the page for free. On iOS Safari, wrap inner scrollables in `BrowserScrollChild` until Flutter's engine-level browser scrolling integration, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), lands.
 
@@ -64,7 +60,7 @@ If your app targets desktop and Android Chrome, plain inner `ListView`s already 
 
 ### Basic page
 
-Use `runWidget` with the current Flutter view, then wrap the outer page content in `BrowserScroller`. The widget creates and disposes the default browser scroller for the current Flutter view. That default scroller is bound to the first `View` where the widget is mounted.
+Use `runWidget` with the current Flutter view, then wrap the outer page content in `BrowserScroller`. The widget creates and disposes the default browser scroller for the current Flutter view. That default scroller is bound to the current Flutter `View` from `View.of(context)`.
 
 ```dart
 import 'package:flutter/material.dart';
