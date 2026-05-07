@@ -47,14 +47,19 @@ The target mental model:
 
 No platform-view scroll reimplementation. No wheel interception. The package only adds the small Flutter-side bridges the browser cannot infer from canvas-painted scrollables, plus a narrow touch-event guard so inner Flutter scrollables do not double-scroll the document on iOS Safari.
 
-## Current API caveats
+## Things to know
 
-`BrowserScrollController` delegates document movement to the browser. It is close to `ScrollController`, but browser-owned scrolling has a few important differences:
+The browser, not Flutter, drives the page scroll. That makes the page feel native, but two things behave differently from a normal `ScrollController`:
 
-- `animateTo` uses browser smooth scrolling for non-zero durations. The browser chooses the exact timing and curve, so custom Flutter `Duration` and `Curve` values are not honored exactly.
-- Browser-driven smooth scroll and browser scroll sync do not synthesize the same `ScrollStartNotification` and `ScrollEndNotification` sequence as Flutter-driven animations. Widgets or app code that depend on those notifications, such as auto-hiding `Scrollbar`s, scroll-aware FABs, or custom refresh/load indicators, may not observe browser-driven scroll start/end.
+- **`animateTo` uses the browser's smooth scroll.** You can still pass a `Duration` and a `Curve`, but the browser picks the actual timing and easing. The same call can look slightly different in Chrome, Safari, and Firefox.
+- **Flutter does not see "scroll started" or "scroll ended" events for browser scrolls.** Widgets that rely on those events, such as the auto-hiding `Scrollbar`, scroll-aware FABs, and custom refresh or load indicators, may not react when the user scrolls the page or when `animateTo` runs.
 
-If your app targets desktop and Android Chrome, plain inner `ListView`s already chain to the page for free. On iOS Safari, wrap inner scrollables in `BrowserScrollChild` until Flutter's engine-level browser scrolling integration, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), lands.
+For inner Flutter scrollables, like a `ListView` placed inside the page:
+
+- On desktop and Android Chrome, no extra setup is needed. Overscroll at the bottom of the inner list chains to the page.
+- On iOS Safari, wrap the inner scrollable in `BrowserScrollChild`. Without it, the browser tries to pan the page at the same time Flutter is handling the gesture, which feels like a double-scroll.
+
+Once Flutter's engine-level browser scrolling work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), lands, `BrowserScrollChild` will not be needed.
 
 ## Usage
 
