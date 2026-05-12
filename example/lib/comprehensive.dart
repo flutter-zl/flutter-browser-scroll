@@ -276,7 +276,6 @@ class _TestPageBodyState extends State<_TestPageBody> {
           height: 400,
           child: ListView(
             primary: false,
-            physics: const ClampingScrollPhysics(),
             children: [for (int i = 1; i <= 20; i++) _FlutterCard(index: i)],
           ),
         ),
@@ -875,7 +874,6 @@ class _PullToRefreshTestState extends State<_PullToRefreshTest> {
   Widget build(BuildContext context) {
     final Widget list = ListView.builder(
       primary: false,
-      physics: const ClampingScrollPhysics(),
       itemCount: _items.length,
       itemBuilder: (context, index) {
         return ListTile(
