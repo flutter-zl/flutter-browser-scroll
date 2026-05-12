@@ -1,39 +1,23 @@
 import 'package:flutter/widgets.dart';
 
-import 'external_scroller.dart';
-
-/// Marks an inner Flutter scrollable as a child of a browser-scrolled page.
+/// Marks an inner Flutter scrollable as a child of a browser-scrolled page so
+/// its top-edge overscroll routing can be customized.
 ///
-/// This is required on iOS Safari to prevent the browser from natively panning
-/// the document while a Flutter inner scrollable handles the same touch. A
-/// `BrowserScrollPhysics` spike showed that making the outer [BrowserScroller]
-/// participate in Flutter's gesture arena is not enough: iOS Safari's native
-/// pan decision is independent of Flutter's gesture arena, so both systems can
-/// scroll simultaneously. See `doc/spikes/browser-scroll-physics-spike.md`
-/// for details. Flutter's engine-level browser scrolling work, such as
-/// https://github.com/flutter/flutter/pull/184102, can solve this lower in the
-/// stack. This package uses an explicit marker instead.
+/// The only knob is [preserveTopOverscroll], used when the inner scrollable
+/// owns top-edge gestures (for example because it hosts a [RefreshIndicator]).
+/// Without this wrapper, top-edge overscroll from a plain inner list chains to
+/// the browser-owned page during active drag, which is the right default for
+/// most lists.
 ///
 /// Use this only for inner Flutter scrollables, such as [ListView], [GridView],
 /// and [CustomScrollView]. Do not wrap iframes, platform views, the outer page,
 /// or plain non-scrollable content.
-///
-/// On desktop and Android Chrome this wrapper is not strictly required for
-/// plain inner scrollables. On iOS Safari it is required to avoid double-scroll.
-class BrowserScrollChild extends StatefulWidget {
+class BrowserScrollChild extends StatelessWidget {
   const BrowserScrollChild({
     super.key,
-    this.scrollerApi,
     this.preserveTopOverscroll = false,
     required this.child,
   });
-
-  /// The browser scroller used by this child.
-  ///
-  /// Most apps leave this null so the nearest ancestor `BrowserScroller`
-  /// provides the scroller. Pass a value only for tests or custom embedders that
-  /// need a different scroller.
-  final ExternalScroller? scrollerApi;
 
   /// Whether top-edge overscroll inside this region should stay with the inner
   /// scrollable instead of chaining to the browser-owned page.
@@ -54,72 +38,11 @@ class BrowserScrollChild extends StatefulWidget {
   final Widget child;
 
   @override
-  State<BrowserScrollChild> createState() => _BrowserScrollChildState();
-}
-
-class _BrowserScrollChildState extends State<BrowserScrollChild> {
-  ExternalScroller? _scrollerApi;
-
-  ExternalScroller _scrollerApiFor(BuildContext context) {
-    final ExternalScroller? scrollerApi =
-        widget.scrollerApi ?? BrowserScrollScope.maybeOf(context);
-    assert(
-      scrollerApi != null,
-      'BrowserScrollChild must be below BrowserScroller or provide '
-      'an explicit scrollerApi.',
-    );
-    return scrollerApi!;
-  }
-
-  @override
-  void dispose() {
-    _scrollerApi?.setNativePanBlocked(false);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    _scrollerApi = _scrollerApiFor(context);
     return BrowserScrollChildScope(
-      preserveTopOverscroll: widget.preserveTopOverscroll,
-      child: Listener(
-        onPointerDown: (_) {
-          _scrollerApi!.setNativePanBlocked(true);
-        },
-        onPointerUp: (_) {
-          _scrollerApi!.setNativePanBlocked(false);
-        },
-        onPointerCancel: (_) {
-          _scrollerApi!.setNativePanBlocked(false);
-        },
-        child: widget.child,
-      ),
+      preserveTopOverscroll: preserveTopOverscroll,
+      child: child,
     );
-  }
-}
-
-/// Inherited scope that publishes the `BrowserScroller`'s [ExternalScroller] to
-/// descendant `BrowserScrollChild` widgets.
-///
-/// Package-internal: not exported from `flutter_browser_scroll.dart`.
-class BrowserScrollScope extends InheritedWidget {
-  const BrowserScrollScope({
-    super.key,
-    required this.scrollerApi,
-    required super.child,
-  });
-
-  final ExternalScroller scrollerApi;
-
-  static ExternalScroller? maybeOf(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<BrowserScrollScope>()
-        ?.scrollerApi;
-  }
-
-  @override
-  bool updateShouldNotify(BrowserScrollScope oldWidget) {
-    return oldWidget.scrollerApi != scrollerApi;
   }
 }
 

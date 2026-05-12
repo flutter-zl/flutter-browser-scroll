@@ -393,9 +393,6 @@ class _FakeExternalScroller implements ExternalScroller {
   }
 
   @override
-  void setNativePanBlocked(bool blocked) {}
-
-  @override
   void setup() {
     setupCount += 1;
   }

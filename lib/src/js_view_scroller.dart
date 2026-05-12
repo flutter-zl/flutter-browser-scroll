@@ -24,9 +24,6 @@ class JsViewScroller implements ExternalScroller {
   final web.EventTarget _scrollTarget = web.window;
 
   late final JSFunction _jsScrollListener = _scrollListener.toJS;
-  late final JSFunction _jsTouchStartListener = _touchStartListener.toJS;
-  late final JSFunction _jsTouchMoveListener = _touchMoveListener.toJS;
-  late final JSFunction _jsTouchEndListener = _touchEndListener.toJS;
   final List<void Function()> _scrollListeners = <void Function()>[];
   final List<RectCallback> _visibleRectListeners = <RectCallback>[];
   web.IntersectionObserver? _observer;
@@ -34,18 +31,6 @@ class JsViewScroller implements ExternalScroller {
   Timer? _pendingScrollTimeout;
   Timer? _pendingScrollIdleTimer;
   double? _pendingScrollTarget;
-
-  // Two iOS native-pan paths share this "should we preventDefault touchmove?"
-  // decision. They are tracked separately so the source of the block stays
-  // explicit:
-  //   - _blockNativePanForMarkedChild: set by BrowserScrollChild via
-  //     setNativePanBlocked on pointerDown / pointerUp.
-  //   - _touchStartedInDetectedInnerScrollable: set by the touchstart
-  //     listener after walking the DOM for an flt-semantics-scroll-overflow
-  //     under the touch point.
-  bool _blockNativePanForMarkedChild = false;
-  bool _touchStartedInDetectedInnerScrollable = false;
-  bool _touchMoveListenerAttached = false;
 
   ui.Rect _lastVisibleRect = ui.Rect.zero;
 
@@ -111,113 +96,11 @@ class JsViewScroller implements ExternalScroller {
       ..overflow = 'auto'
       ..height = 'auto';
 
-    // iOS Safari and iOS Chrome pan the page from WebKit's off-thread
-    // scroller, independent of Flutter's gesture arena. The only reliable
-    // way to cancel that pan is preventDefault on a non-passive touchmove,
-    // hence {passive: false} on touchmove below. touchstart and touchend
-    // just track gesture state. iOS Firefox/Edge, Android, and desktop do
-    // not double-scroll on nested Flutter scrollables; these listeners are
-    // harmless on those platforms.
-    body.addEventListener(
-      'touchstart',
-      _jsTouchStartListener,
-      <String, Object>{'passive': true, 'capture': true}.jsify()!,
-    );
-    body.addEventListener(
-      'touchmove',
-      _jsTouchMoveListener,
-      <String, Object>{'passive': false, 'capture': true}.jsify()!,
-    );
-    body.addEventListener(
-      'touchend',
-      _jsTouchEndListener,
-      <String, Object>{'passive': true, 'capture': true}.jsify()!,
-    );
-    body.addEventListener(
-      'touchcancel',
-      _jsTouchEndListener,
-      <String, Object>{'passive': true, 'capture': true}.jsify()!,
-    );
-    _touchMoveListenerAttached = true;
-
     final web.Element? flutterView = body.querySelector('flutter-view');
     if (flutterView case final web.HTMLElement view) {
       _fixedViewStyleSnapshot = _StyleSnapshot.capture(view);
       _fixElementToViewport(view);
     }
-  }
-
-  void _touchStartListener(web.Event event) {
-    _touchStartedInDetectedInnerScrollable =
-        _isTouchInsideInnerFlutterScrollable(event);
-  }
-
-  void _touchMoveListener(web.Event event) {
-    if (_isPlatformViewEvent(event)) {
-      return;
-    }
-    if (!_blockNativePanForMarkedChild &&
-        !_touchStartedInDetectedInnerScrollable) {
-      return;
-    }
-    event.preventDefault();
-  }
-
-  void _touchEndListener(web.Event event) {
-    _touchStartedInDetectedInnerScrollable = false;
-  }
-
-  bool _isPlatformViewEvent(web.Event event) {
-    for (final web.EventTarget target in event.composedPath().toDart) {
-      if (target.isA<web.Element>()) {
-        final web.Element element = target as web.Element;
-        final String tagName = element.tagName.toLowerCase();
-        if (tagName == 'flt-platform-view' || tagName == 'iframe') {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  bool _isTouchInsideInnerFlutterScrollable(web.Event event) {
-    if (!event.isA<web.TouchEvent>()) {
-      return false;
-    }
-    final web.TouchEvent touchEvent = event as web.TouchEvent;
-    // TODO: Track touch identifiers individually for multi-touch gestures.
-    final web.Touch? touch = touchEvent.changedTouches.item(0);
-    if (touch == null) {
-      return false;
-    }
-
-    final double x = touch.clientX;
-    final double y = touch.clientY;
-    final double windowHeight = web.window.innerHeight.toDouble();
-    final web.NodeList semanticNodes =
-        web.document.body!.querySelectorAll('flt-semantics');
-    for (int index = 0; index < semanticNodes.length; index++) {
-      final web.Node? node = semanticNodes.item(index);
-      if (node case final web.HTMLElement element) {
-        final web.Element? firstChild = element.firstElementChild;
-        if (firstChild?.tagName.toLowerCase() !=
-            'flt-semantics-scroll-overflow') {
-          continue;
-        }
-
-        final web.DOMRect rect = element.getBoundingClientRect();
-        final double height = rect.height.toDouble();
-        final bool isInnerScrollable = height < windowHeight - 1.0;
-        final bool containsTouch = x >= rect.left &&
-            x <= rect.right &&
-            y >= rect.top &&
-            y <= rect.bottom;
-        if (isInnerScrollable && containsTouch) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   void _fixElementToViewport(web.HTMLElement element) {
@@ -336,11 +219,6 @@ class JsViewScroller implements ExternalScroller {
     );
   }
 
-  @override
-  void setNativePanBlocked(bool blocked) {
-    _blockNativePanForMarkedChild = blocked;
-  }
-
   void _checkPendingScroll() {
     final double? target = _pendingScrollTarget;
     if (target == null) {
@@ -379,33 +257,9 @@ class JsViewScroller implements ExternalScroller {
   @override
   void dispose() {
     _completePendingScroll();
-    _blockNativePanForMarkedChild = false;
     _observer?.disconnect();
     if (_scrollListeners.isNotEmpty) {
       _scrollTarget.removeEventListener('scroll', _jsScrollListener);
-    }
-    if (_touchMoveListenerAttached) {
-      web.document.body?.removeEventListener(
-        'touchstart',
-        _jsTouchStartListener,
-        <String, Object>{'capture': true}.jsify()!,
-      );
-      web.document.body?.removeEventListener(
-        'touchmove',
-        _jsTouchMoveListener,
-        <String, Object>{'capture': true}.jsify()!,
-      );
-      web.document.body?.removeEventListener(
-        'touchend',
-        _jsTouchEndListener,
-        <String, Object>{'capture': true}.jsify()!,
-      );
-      web.document.body?.removeEventListener(
-        'touchcancel',
-        _jsTouchEndListener,
-        <String, Object>{'capture': true}.jsify()!,
-      );
-      _touchMoveListenerAttached = false;
     }
     _placeholderElement.remove();
     _hostStyleSnapshot?.restore();

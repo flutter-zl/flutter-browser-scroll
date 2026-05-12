@@ -19,7 +19,5 @@ abstract class ExternalScroller {
 
   void scrollBy(double delta);
 
-  void setNativePanBlocked(bool blocked) {}
-
   void dispose();
 }

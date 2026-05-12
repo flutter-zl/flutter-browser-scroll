@@ -243,27 +243,24 @@ class _BrowserScrollerState extends State<BrowserScroller> {
         max(0, viewSize.width - visibleRect.right),
         max(0, viewSize.height - visibleRect.bottom),
       ),
-      child: BrowserScrollScope(
-        scrollerApi: scrollerApi,
-        child: NotificationListener<OverscrollNotification>(
-          onNotification: _handleOverscrollNotification,
-          child: SizedBox(
-            width: visibleRect.width,
-            height: visibleRect.height,
-            child: Scrollable(
-              controller: _scrollController,
-              physics: const NeverScrollableScrollPhysics(),
-              scrollBehavior: ScrollConfiguration.of(
-                context,
-              ).copyWith(scrollbars: false),
-              viewportBuilder: (BuildContext context, ViewportOffset offset) {
-                return Viewport(
-                  offset: offset,
-                  axisDirection: AxisDirection.down,
-                  slivers: <Widget>[SliverToBoxAdapter(child: widget.child)],
-                );
-              },
-            ),
+      child: NotificationListener<OverscrollNotification>(
+        onNotification: _handleOverscrollNotification,
+        child: SizedBox(
+          width: visibleRect.width,
+          height: visibleRect.height,
+          child: Scrollable(
+            controller: _scrollController,
+            physics: const NeverScrollableScrollPhysics(),
+            scrollBehavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(scrollbars: false),
+            viewportBuilder: (BuildContext context, ViewportOffset offset) {
+              return Viewport(
+                offset: offset,
+                axisDirection: AxisDirection.down,
+                slivers: <Widget>[SliverToBoxAdapter(child: widget.child)],
+              );
+            },
           ),
         ),
       ),

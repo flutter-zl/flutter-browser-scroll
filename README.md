@@ -16,10 +16,12 @@ The package is a polyfill-style bridge for browser-driven scrolling while Flutte
 
 A comprehensive A/B demo is deployed:
 
-- **After** (package applied): https://flutter-demo-00-after.web.app
-- **Before** (no package, same UI): https://flutter-demo-00-before.web.app
+- **After** (package applied): https://flutter-demo-26-after.web.app
+- **Before** (no package, same UI): https://flutter-demo-26-before.web.app
 
-Compare TEST 1 (inner list chaining), TEST 3 (`RefreshIndicator`), and inner-list touch on iOS Safari. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
+Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and platform views, keyboard scroll, and programmatic scroll between the two URLs. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
+
+An earlier snapshot with the iOS Safari/Chrome touch-listener fix is available at [`v0.1.0-with-touch-listeners`](https://github.com/flutter-zl/flutter-browser-scroll/tree/v0.1.0-with-touch-listeners), with its demo at https://flutter-demo-00-after.web.app and https://flutter-demo-00-before.web.app.
 
 ## Installation
 
@@ -54,12 +56,11 @@ The browser, not Flutter, drives the page scroll. That makes the page feel nativ
 - **`animateTo` uses the browser's smooth scroll.** You can still pass a `Duration` and a `Curve`, but the browser picks the actual timing and easing. The same call can look slightly different in Chrome, Safari, and Firefox.
 - **Flutter does not see "scroll started" or "scroll ended" events for browser scrolls.** Widgets that rely on those events, such as the auto-hiding `Scrollbar`, scroll-aware FABs, and custom refresh or load indicators, may not react when the user scrolls the page or when `animateTo` runs.
 
-For inner Flutter scrollables, like a `ListView` placed inside the page:
+For inner Flutter scrollables, like a `ListView` placed inside the page, no extra setup is needed on desktop or Android: top-edge and bottom-edge overscroll chain to the page automatically. If your inner scrollable hosts a `RefreshIndicator`, wrap it in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so the pull-down arms refresh instead of chaining to the page.
 
-- On desktop and Android Chrome, no extra setup is needed. Overscroll at the bottom of the inner list chains to the page.
-- On iOS Safari, wrap the inner scrollable in `BrowserScrollChild`. Without it, the browser tries to pan the page at the same time Flutter is handling the gesture, which feels like a double-scroll.
+## Known limitations
 
-Once Flutter's engine-level browser scrolling work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), lands, `BrowserScrollChild` will not be needed.
+On iOS Safari and iOS Chrome, a nested Flutter scrollable inside the browser-scrolled page can double-scroll: the browser pans the document while Flutter also scrolls the inner list. This is a WebKit-level behavior that this package does not paper over in v0.1.0. The intended fix lives in Flutter's engine work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102). iOS Firefox and iOS Edge, all Android browsers, and all desktop browsers do not show the issue.
 
 ## Usage
 
@@ -144,37 +145,11 @@ class _MyAppState extends State<MyApp> {
 }
 ```
 
-### Inner Flutter scrollables on iOS
+### Pull-to-refresh inside the page
 
-Wrap inner Flutter scrollables, such as `ListView`, `GridView`, or `CustomScrollView`, in `BrowserScrollChild`. This stops iOS Safari from panning the page while Flutter handles the inner gesture. By default, overscroll at either edge chains to the page.
+A plain inner Flutter scrollable inside `BrowserScroller` works without any wrapper: top-edge and bottom-edge overscroll chain to the page during active drag.
 
-Do not wrap iframes, platform views, or non-scrollable content.
-
-If the inner scrollable hosts a `RefreshIndicator`, pass `preserveTopOverscroll: true` so a pull-down arms refresh instead of scrolling the page.
-
-```dart
-BrowserScroller(
-  child: Column(
-    children: <Widget>[
-      SizedBox(
-        height: 400,
-        child: BrowserScrollChild(
-          child: ListView.builder(
-            primary: false,
-            physics: const ClampingScrollPhysics(),
-            itemCount: 50,
-            itemBuilder: (BuildContext context, int index) {
-              return ListTile(title: Text('Inner item $index'));
-            },
-          ),
-        ),
-      ),
-    ],
-  ),
-)
-```
-
-For a pull-to-refresh list:
+For a `RefreshIndicator`, wrap the inner scrollable in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so a pull-down at the top arms refresh instead of scrolling the page:
 
 ```dart
 RefreshIndicator(

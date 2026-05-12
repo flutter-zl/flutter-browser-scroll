@@ -139,18 +139,17 @@ class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
         ? 'This is the AFTER demo. The flutter_browser_scroll package is '
               'applied. The outer page scroll is owned by the browser; '
               'Flutter mirrors the browser scroll position via '
-              'BrowserScrollController. Inner Flutter scrollables wrapped '
-              'in BrowserScrollChild chain to the parent page when they '
-              'reach a boundary, and BrowserScrollChild prevents iOS Safari '
-              'from panning the document while Flutter handles an inner '
-              'gesture. Compare with the BEFORE demo to see what the '
-              'package adds.'
+              'BrowserScrollController. Inner Flutter scrollables chain '
+              'their overscroll to the parent page. Known limitation: on '
+              'iOS Safari and iOS Chrome a nested Flutter scrollable can '
+              'double-scroll because the browser pans the document while '
+              'Flutter also scrolls the inner list. Compare with the '
+              'BEFORE demo to see what the package adds.'
         : 'This is the BEFORE demo. The flutter_browser_scroll package is '
               'NOT applied. The outer page is scrolled by Flutter, not the '
               'browser. Inner Flutter scrollables do not chain to the '
-              'parent page when they reach a boundary, and on iOS Safari '
-              'touch on an inner list can also pan the document. Compare '
-              'with the AFTER demo to see what the package adds.';
+              'parent page when they reach a boundary. Compare with the '
+              'AFTER demo to see what the package adds.';
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -257,77 +256,45 @@ class _TestPageBodyState extends State<_TestPageBody> {
       widget.intro,
       const SizedBox(height: 24),
 
-      // TEST 1: Inner list (with or without BrowserScrollChild)
+      // TEST 1: Inner Flutter list
       _TestSection(
         number: 1,
-        title: widget.useBrowserScroller
-            ? 'Inner List with BrowserScrollChild'
-            : 'Inner List',
+        title: 'Inner Flutter List',
         description: widget.useBrowserScroller
-            ? 'An inner Flutter ListView wrapped in BrowserScrollChild. '
-                  'Scroll inside it; when it reaches its top or bottom '
-                  'edge, the parent page continues scrolling. On iOS '
-                  'Safari this wrapper prevents the browser from panning '
-                  'the document at the same time as the inner list.'
-            : 'An inner Flutter ListView. On mobile browsers, without flutter_browser_scroll, '
+            ? 'An inner Flutter ListView inside the browser-scrolled '
+                  'page. Scroll inside it; at top and bottom edges the '
+                  'parent page takes over. Known limitation: on iOS '
+                  'Safari and iOS Chrome the page double-scrolls while '
+                  'the inner list also scrolls. iOS Firefox and Edge, '
+                  'Android, and desktop do not show this.'
+            : 'An inner Flutter ListView. Without flutter_browser_scroll, '
                   'scroll stops at the list boundary; the parent page '
-                  'does not continue',
+                  'does not continue.',
         color: Colors.blue,
         status: TestStatus.pending,
         child: SizedBox(
           height: 400,
-          child: widget.useBrowserScroller
-              ? BrowserScrollChild(
-                  child: ListView(
-                    primary: false,
-                    physics: const ClampingScrollPhysics(),
-                    children: [
-                      for (int i = 1; i <= 20; i++) _FlutterCard(index: i),
-                    ],
-                  ),
-                )
-              : ListView(
-                  primary: false,
-                  physics: const ClampingScrollPhysics(),
-                  children: [
-                    for (int i = 1; i <= 20; i++) _FlutterCard(index: i),
-                  ],
-                ),
+          child: ListView(
+            primary: false,
+            physics: const ClampingScrollPhysics(),
+            children: [for (int i = 1; i <= 20; i++) _FlutterCard(index: i)],
+          ),
         ),
       ),
 
-      // TEST 2: Inner list without BrowserScrollChild (after-only comparison)
-      if (widget.useBrowserScroller)
-        _TestSection(
-          number: 2,
-          title: 'Inner List without BrowserScrollChild',
-          description:
-              'The same inner list as TEST 1 but without the wrapper. '
-              'On desktop and Android Chrome it still chains correctly. '
-              'On iOS Safari/Chrome the page double-scrolls because the '
-              'browser pans the document while Flutter also scrolls '
-              'the inner list.',
-          color: Colors.indigo,
-          child: SizedBox(
-            height: 400,
-            child: ListView(
-              primary: false,
-              physics: const ClampingScrollPhysics(),
-              children: [for (int i = 1; i <= 20; i++) _FlutterCard(index: i)],
-            ),
-          ),
-        ),
-
-      // TEST 3: Pull-to-refresh at top edge
+      // TEST 2: Pull-to-refresh at top edge
       _TestSection(
-        number: 3,
+        number: 2,
         title: 'Pull-to-Refresh (RefreshIndicator)',
         description: widget.useBrowserScroller
             ? 'Pull down on this inner list when it is at its top. A '
                   'refresh indicator should appear. Overscroll at the '
                   'top edge is preserved so RefreshIndicator works. At '
                   'the bottom edge, the inner list clamps and the '
-                  'browser-owned parent page takes over.'
+                  'browser-owned parent page takes over. Known '
+                  'limitation: on iOS Safari and iOS Chrome the page can '
+                  'double-scroll while the inner list also scrolls, '
+                  'same as TEST 1.'
             : 'Pull down on this inner list when it is at its top. A '
                   'refresh indicator should appear (Flutter handles top-'
                   'edge overscroll natively). At the bottom edge, the '
@@ -340,9 +307,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 4: Cross-origin iframe (Wikipedia)
+      // TEST 3: Cross-origin iframe (Wikipedia)
       _TestSection(
-        number: 4,
+        number: 3,
         title: 'Cross-Origin Iframe (Wikipedia)',
         description: widget.useBrowserScroller
             ? 'Scroll inside the Wikipedia article. When it reaches its '
@@ -357,9 +324,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 5: Cross-origin iframe (video embed)
+      // TEST 4: Cross-origin iframe (video embed)
       _TestSection(
-        number: 5,
+        number: 4,
         title: 'Cross-Origin Iframe (Video)',
         description: widget.useBrowserScroller
             ? 'Scroll while pointing at the embedded video, including '
@@ -375,9 +342,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 6: Same-origin scrollable div
+      // TEST 5: Same-origin scrollable div
       _TestSection(
-        number: 6,
+        number: 5,
         title: 'Same-Origin Scrollable HTML',
         description: widget.useBrowserScroller
             ? 'A same-origin HTML div with overflow:auto. Scroll inside '
@@ -391,9 +358,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 7: Keyboard scroll
+      // TEST 6: Keyboard scroll
       _TestSection(
-        number: 7,
+        number: 6,
         title: 'Keyboard Scroll',
         description: widget.useBrowserScroller
             ? 'Click on the page, then press Page Down, Space, or Arrow '
@@ -426,9 +393,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
-      // TEST 8: Overlays & Dialogs
+      // TEST 7: Overlays & Dialogs
       _TestSection(
-        number: 8,
+        number: 7,
         title: 'Overlays & Dialogs',
         description:
             'Test dialogs, menus, dropdowns, and bottom sheets '
@@ -438,9 +405,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         child: _buildOverlayTests(context),
       ),
 
-      // TEST 9: Programmatic scroll
+      // TEST 8: Programmatic scroll
       _TestSection(
-        number: 9,
+        number: 8,
         title: 'Programmatic Scroll',
         description: widget.useBrowserScroller
             ? 'Drive the page from code via BrowserScrollController. '
@@ -484,9 +451,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
       // More content for scrolling
       for (int i = 10; i <= 25; i++) _FlutterCard(index: i),
 
-      // TEST 10: Bottom reached
+      // TEST 9: Bottom reached
       _TestSection(
-        number: 10,
+        number: 9,
         title: 'Bottom Reached',
         description: widget.useBrowserScroller
             ? 'You scrolled to the bottom of the browser-owned page. All '
