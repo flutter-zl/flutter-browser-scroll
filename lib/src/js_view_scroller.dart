@@ -111,6 +111,13 @@ class JsViewScroller implements ExternalScroller {
       ..overflow = 'auto'
       ..height = 'auto';
 
+    // iOS Safari and iOS Chrome pan the page from WebKit's off-thread
+    // scroller, independent of Flutter's gesture arena. The only reliable
+    // way to cancel that pan is preventDefault on a non-passive touchmove,
+    // hence {passive: false} on touchmove below. touchstart and touchend
+    // just track gesture state. iOS Firefox/Edge, Android, and desktop do
+    // not double-scroll on nested Flutter scrollables; these listeners are
+    // harmless on those platforms.
     body.addEventListener(
       'touchstart',
       _jsTouchStartListener,
