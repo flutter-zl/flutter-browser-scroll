@@ -62,6 +62,8 @@ For inner Flutter scrollables, like a `ListView` placed inside the page, no extr
 
 On mobile browsers, a nested Flutter scrollable inside the browser-scrolled page can double-scroll: the browser pans the document while Flutter also scrolls the inner list. This is a touch-event ordering issue between the browser and Flutter that this package does not paper over in v0.1.0. Desktop browsers do not show the issue.
 
+Modal Flutter overlays do not freeze the page. With a normal `ScrollController`, opening a `showDialog`, `showModalBottomSheet`, or any route with a `ModalBarrier` blocks scroll on the page behind it because the barrier swallows pointer events inside Flutter. Here the browser owns the outer scroll, so wheel, trackpad pan, and touch drag reach `window` before Flutter sees them and the document keeps scrolling underneath the dialog. If you need the background frozen while a modal is open, set `document.body.style.overflow = 'hidden'` and `document.documentElement.style.overflow = 'hidden'` on push, and restore on pop.
+
 ## Usage
 
 ### Basic page
