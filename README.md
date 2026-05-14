@@ -21,7 +21,7 @@ A comprehensive A/B demo is deployed:
 
 Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and platform views, keyboard scroll, and programmatic scroll between the two URLs. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
 
-An earlier snapshot with the iOS Safari/Chrome touch-listener fix is available at [`v0.1.0-with-touch-listeners`](https://github.com/flutter-zl/flutter-browser-scroll/tree/v0.1.0-with-touch-listeners), with its demo at https://flutter-demo-00-after.web.app and https://flutter-demo-00-before.web.app.
+An earlier snapshot with the iOS Safari/Chrome touch-listener fix is on the [`with-touch-listeners`](https://github.com/flutter-zl/flutter-browser-scroll/tree/with-touch-listeners) branch, with its demo at https://flutter-demo-00-after.web.app and https://flutter-demo-00-before.web.app.
 
 ## Installation
 
