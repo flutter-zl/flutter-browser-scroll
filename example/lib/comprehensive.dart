@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui_web' as ui_web;
 import 'package:web/web.dart' as web;
-import 'package:flutter/semantics.dart';
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 
 void main() {
   registerPlatformViews();
   runApp(const MyApp(useBrowserScroller: true));
-  SemanticsBinding.instance.ensureSemantics();
 }
 
 void registerPlatformViews() {
