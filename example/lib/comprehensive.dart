@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui_web' as ui_web;
 import 'package:web/web.dart' as web;
-import 'package:flutter/semantics.dart';
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 
 void main() {
   registerPlatformViews();
   runApp(const MyApp(useBrowserScroller: true));
-  SemanticsBinding.instance.ensureSemantics();
 }
 
 void registerPlatformViews() {
@@ -141,7 +139,7 @@ class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
               'Flutter mirrors the browser scroll position via '
               'BrowserScrollController. Inner Flutter scrollables chain '
               'their overscroll to the parent page. Known limitation: on '
-              'iOS Safari and iOS Chrome a nested Flutter scrollable can '
+              'mobile browsers a nested Flutter scrollable can '
               'double-scroll because the browser pans the document while '
               'Flutter also scrolls the inner list. Compare with the '
               'BEFORE demo to see what the package adds.'
@@ -263,10 +261,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
         description: widget.useBrowserScroller
             ? 'An inner Flutter ListView inside the browser-scrolled '
                   'page. Scroll inside it; at top and bottom edges the '
-                  'parent page takes over. Known limitation: on iOS '
-                  'Safari and iOS Chrome the page double-scrolls while '
-                  'the inner list also scrolls. iOS Firefox and Edge, '
-                  'Android, and desktop do not show this.'
+                  'parent page takes over. Known limitation: on mobile '
+                  'browsers the page double-scrolls while the inner list '
+                  'also scrolls. Desktop does not show this.'
             : 'An inner Flutter ListView. Without flutter_browser_scroll, '
                   'scroll stops at the list boundary; the parent page '
                   'does not continue.',
@@ -291,7 +288,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
                   'top edge is preserved so RefreshIndicator works. At '
                   'the bottom edge, the inner list clamps and the '
                   'browser-owned parent page takes over. Known '
-                  'limitation: on iOS Safari and iOS Chrome the page can '
+                  'limitation: on mobile browsers the page can '
                   'double-scroll while the inner list also scrolls, '
                   'same as TEST 1.'
             : 'Pull down on this inner list when it is at its top. A '
@@ -460,8 +457,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
                   'flutter_browser_scroll.'
             : 'You scrolled to the bottom of the Flutter-scrolled page. '
                   'Compare with the AFTER demo to see what scroll '
-                  'chaining and iOS Safari touch handling '
-                  'flutter_browser_scroll adds.',
+                  'chaining flutter_browser_scroll adds.',
         color: Colors.green,
         status: TestStatus.pass,
         child: const Icon(Icons.check_circle, size: 64, color: Colors.green),

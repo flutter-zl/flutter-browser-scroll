@@ -47,7 +47,7 @@ The target mental model:
  Flutter ScrollController syncs to the reported position
 ```
 
-No platform-view scroll reimplementation. No wheel interception. The package only adds the small Flutter-side bridges the browser cannot infer from canvas-painted scrollables, plus a narrow touch-event guard so inner Flutter scrollables do not double-scroll the document on iOS Safari.
+No platform-view scroll reimplementation. No wheel interception. The package only adds the small Flutter-side bridges the browser cannot infer from canvas-painted scrollables.
 
 ## Things to know
 
@@ -60,7 +60,7 @@ For inner Flutter scrollables, like a `ListView` placed inside the page, no extr
 
 ## Known limitations
 
-On iOS Safari and iOS Chrome, a nested Flutter scrollable inside the browser-scrolled page can double-scroll: the browser pans the document while Flutter also scrolls the inner list. This is a WebKit-level behavior that this package does not paper over in v0.1.0. The intended fix lives in Flutter's engine work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102). iOS Firefox and iOS Edge, all Android browsers, and all desktop browsers do not show the issue.
+On mobile browsers, a nested Flutter scrollable inside the browser-scrolled page can double-scroll: the browser pans the document while Flutter also scrolls the inner list. This is a touch-event ordering issue between the browser and Flutter that this package does not paper over in v0.1.0. Desktop browsers do not show the issue.
 
 ## Usage
 
