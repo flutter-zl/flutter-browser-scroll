@@ -265,8 +265,9 @@ class _TestPageBodyState extends State<_TestPageBody> {
                   'browsers the page double-scrolls while the inner list '
                   'also scrolls. Desktop does not show this.'
             : 'An inner Flutter ListView. Without flutter_browser_scroll, '
-                  'scroll stops at the list boundary; the parent page '
-                  'does not continue.',
+                  'on mobile, scroll stops at the list boundary and the '
+                  'parent page does not continue. Desktop does not have '
+                  'this issue.',
         color: Colors.blue,
         status: TestStatus.pending,
         child: SizedBox(
@@ -293,10 +294,10 @@ class _TestPageBodyState extends State<_TestPageBody> {
                   'same as TEST 1.'
             : 'Pull down on this inner list when it is at its top. A '
                   'refresh indicator should appear (Flutter handles top-'
-                  'edge overscroll natively). At the bottom edge, the '
-                  'inner list clamps and stops; without '
+                  'edge overscroll natively). At the bottom edge on mobile, '
+                  'the inner list clamps and stops; without '
                   'flutter_browser_scroll the parent page does not '
-                  'continue scrolling.',
+                  'continue scrolling. Desktop does not have this issue.',
         color: Colors.cyan,
         child: _PullToRefreshTest(
           useBrowserScroller: widget.useBrowserScroller,
