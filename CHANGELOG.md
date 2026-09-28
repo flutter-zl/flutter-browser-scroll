@@ -1,3 +1,12 @@
+## Unreleased
+
+* Touches that start on an inner vertical Flutter scrollable no longer also
+  pan the page on mobile browsers. `BrowserScroller` hit-tests each touch-down
+  and cancels the browser's pan for that touch.
+* Inner scrollables inside `BrowserScroller` now default to
+  `ClampingScrollPhysics`, so overscroll hands off to the page on iOS too. A
+  scrollable that sets its own `physics` keeps them.
+
 ## 0.1.0
 
 * Breaking change: renamed `BrowserScrollTouchRegion` to

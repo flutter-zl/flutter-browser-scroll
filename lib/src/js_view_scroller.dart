@@ -24,6 +24,7 @@ class JsViewScroller implements ExternalScroller {
   final web.EventTarget _scrollTarget = web.window;
 
   late final JSFunction _jsScrollListener = _scrollListener.toJS;
+  late final JSFunction _jsTouchMoveListener = _touchMoveListener.toJS;
   final List<void Function()> _scrollListeners = <void Function()>[];
   final List<RectCallback> _visibleRectListeners = <RectCallback>[];
   web.IntersectionObserver? _observer;
@@ -31,6 +32,8 @@ class JsViewScroller implements ExternalScroller {
   Timer? _pendingScrollTimeout;
   Timer? _pendingScrollIdleTimer;
   double? _pendingScrollTarget;
+  bool _nativePanBlocked = false;
+  bool _touchMoveListenerAttached = false;
 
   ui.Rect _lastVisibleRect = ui.Rect.zero;
 
@@ -96,11 +99,41 @@ class JsViewScroller implements ExternalScroller {
       ..overflow = 'auto'
       ..height = 'auto';
 
+    // With touch-action: pan-y, the browser can pan the page while Flutter
+    // scrolls an inner scrollable under the same finger. Once touch-action
+    // allows the pan, preventDefault on a non-passive touchmove is the only
+    // reliable way to cancel it. BrowserScroller decides which touches to
+    // block through setNativePanBlocked.
+    body.addEventListener(
+      'touchmove',
+      _jsTouchMoveListener,
+      <String, Object>{'passive': false, 'capture': true}.jsify()!,
+    );
+    _touchMoveListenerAttached = true;
+
     final web.Element? flutterView = body.querySelector('flutter-view');
     if (flutterView case final web.HTMLElement view) {
       _fixedViewStyleSnapshot = _StyleSnapshot.capture(view);
       _fixElementToViewport(view);
     }
+  }
+
+  void _touchMoveListener(web.Event event) {
+    if (_nativePanBlocked && !_isPlatformViewEvent(event)) {
+      event.preventDefault();
+    }
+  }
+
+  bool _isPlatformViewEvent(web.Event event) {
+    for (final web.EventTarget target in event.composedPath().toDart) {
+      if (target.isA<web.Element>()) {
+        final String tagName = (target as web.Element).tagName.toLowerCase();
+        if (tagName == 'flt-platform-view' || tagName == 'iframe') {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   void _fixElementToViewport(web.HTMLElement element) {
@@ -219,6 +252,11 @@ class JsViewScroller implements ExternalScroller {
     );
   }
 
+  @override
+  void setNativePanBlocked(bool blocked) {
+    _nativePanBlocked = blocked;
+  }
+
   void _checkPendingScroll() {
     final double? target = _pendingScrollTarget;
     if (target == null) {
@@ -257,9 +295,18 @@ class JsViewScroller implements ExternalScroller {
   @override
   void dispose() {
     _completePendingScroll();
+    _nativePanBlocked = false;
     _observer?.disconnect();
     if (_scrollListeners.isNotEmpty) {
       _scrollTarget.removeEventListener('scroll', _jsScrollListener);
+    }
+    if (_touchMoveListenerAttached) {
+      web.document.body?.removeEventListener(
+        'touchmove',
+        _jsTouchMoveListener,
+        <String, Object>{'capture': true}.jsify()!,
+      );
+      _touchMoveListenerAttached = false;
     }
     _placeholderElement.remove();
     _hostStyleSnapshot?.restore();

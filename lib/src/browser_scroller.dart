@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -44,6 +45,8 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       PlaceholderHeightTracker();
   ExternalScroller? _ownedScrollerApi;
   bool _initialized = false;
+  late final int _viewId;
+  final Set<int> _nativePanBlockingPointers = <int>{};
 
   ExternalScroller get scrollerApi => widget.scrollerApi ?? _ownedScrollerApi!;
 
@@ -68,15 +71,17 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       return;
     }
     _initialized = true;
+    _viewId = View.of(context).viewId;
 
     _ownedScrollerApi = widget.scrollerApi == null
-        ? BrowserScroller.debugScrollerFactory(View.of(context).viewId)
+        ? BrowserScroller.debugScrollerFactory(_viewId)
         : null;
     _scrollController
       ..scrollerApi = scrollerApi
       ..prepareTarget = _prepareForTarget;
 
     scrollerApi.setup();
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointerEvent);
 
     _syncVisibleRect();
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -158,6 +163,44 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     scrollerApi.updateHeight(height);
   }
 
+  // With semantics off, the engine delivers pointerdown to the framework
+  // synchronously, before the browser dispatches the first touchmove. That
+  // lets Flutter's own hit test decide whether to block the native page pan.
+  void _handlePointerEvent(PointerEvent event) {
+    if (event.kind != PointerDeviceKind.touch || event.viewId != _viewId) {
+      return;
+    }
+    if (event is PointerDownEvent) {
+      if (_hitsInnerVerticalScrollable(event.position)) {
+        _nativePanBlockingPointers.add(event.pointer);
+      }
+    } else if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _nativePanBlockingPointers.remove(event.pointer);
+    } else {
+      return;
+    }
+    scrollerApi.setNativePanBlocked(_nativePanBlockingPointers.isNotEmpty);
+  }
+
+  bool _hitsInnerVerticalScrollable(Offset position) {
+    final HitTestResult result = HitTestResult();
+    GestureBinding.instance.hitTestInView(result, position, _viewId);
+    for (final HitTestEntry entry in result.path) {
+      final HitTestTarget target = entry.target;
+      if (target is! RenderViewportBase || target.axis != Axis.vertical) {
+        continue;
+      }
+      final ViewportOffset offset = target.offset;
+      // The outer page viewport uses NeverScrollableScrollPhysics, so it never
+      // accepts a user offset and is skipped here.
+      if (offset is ScrollPosition &&
+          offset.physics.shouldAcceptUserOffset(offset)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   bool _handleOverscrollNotification(OverscrollNotification notification) {
     final bool shouldForward = shouldForwardOverscroll(
       overscroll: notification.overscroll,
@@ -223,6 +266,12 @@ class _BrowserScrollerState extends State<BrowserScroller> {
 
   @override
   void dispose() {
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(
+      _handlePointerEvent,
+    );
+    if (_nativePanBlockingPointers.isNotEmpty) {
+      scrollerApi.setNativePanBlocked(false);
+    }
     _scrollController
       ..scrollerApi = null
       ..prepareTarget = null;
@@ -236,6 +285,12 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   @override
   Widget build(BuildContext context) {
     final ui.Size viewSize = MediaQuery.sizeOf(context);
+    // Inner scrollables hand off to the page only through
+    // OverscrollNotification, which bouncing physics never send. Default them
+    // to clamping so iOS chains too. Physics set on a scrollable still win.
+    final ScrollBehavior childScrollBehavior = ScrollConfiguration.of(
+      context,
+    ).copyWith(physics: const ClampingScrollPhysics());
     return Padding(
       padding: EdgeInsets.fromLTRB(
         visibleRect.left,
@@ -258,7 +313,14 @@ class _BrowserScrollerState extends State<BrowserScroller> {
               return Viewport(
                 offset: offset,
                 axisDirection: AxisDirection.down,
-                slivers: <Widget>[SliverToBoxAdapter(child: widget.child)],
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: ScrollConfiguration(
+                      behavior: childScrollBehavior,
+                      child: widget.child,
+                    ),
+                  ),
+                ],
               );
             },
           ),

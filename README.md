@@ -56,11 +56,15 @@ The browser, not Flutter, drives the page scroll. That makes the page feel nativ
 - **`animateTo` uses the browser's smooth scroll.** You can still pass a `Duration` and a `Curve`, but the browser picks the actual timing and easing. The same call can look slightly different in Chrome, Safari, and Firefox.
 - **Flutter does not see "scroll started" or "scroll ended" events for browser scrolls.** Widgets that rely on those events, such as the auto-hiding `Scrollbar`, scroll-aware FABs, and custom refresh or load indicators, may not react when the user scrolls the page or when `animateTo` runs.
 
-For inner Flutter scrollables, like a `ListView` placed inside the page, no extra setup is needed on desktop or Android: top-edge and bottom-edge overscroll chain to the page automatically. If your inner scrollable hosts a `RefreshIndicator`, wrap it in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so the pull-down arms refresh instead of chaining to the page.
+For inner Flutter scrollables, like a `ListView` placed inside the page, no extra setup is needed: a touch that starts on the inner scrollable scrolls only that scrollable, and top-edge and bottom-edge overscroll chain to the page automatically. If your inner scrollable hosts a `RefreshIndicator`, wrap it in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so the pull-down arms refresh instead of chaining to the page.
+
+Inner scrollables default to `ClampingScrollPhysics` inside `BrowserScroller`, on every platform. Bouncing physics never report the overscroll that the page handoff relies on, so without this default, inner lists on iOS would stop at their edges instead of continuing into the page. A scrollable that sets its own `physics` keeps them. With `BouncingScrollPhysics`, it bounces at its edges and does not hand off to the page.
 
 ## Known limitations
 
-On mobile browsers, a nested Flutter scrollable inside the browser-scrolled page can double-scroll: the browser pans the document while Flutter also scrolls the inner list. This is a touch-event ordering issue between the browser and Flutter that this package does not paper over in v0.1.0. Desktop browsers do not show the issue.
+On iOS Safari, the browser occasionally discards one frame of an inner-list handoff to the page. On a physical iPhone this happened in about 1 of 100 handoff frames, and it shows as a one-frame jump back of a few pixels.
+
+When a screen reader is on, Flutter's engine can deliver a touch on a tappable item late. The package may then decide too late to block the page pan, and that touch can scroll both the inner list and the page.
 
 Modal Flutter overlays do not freeze the page. With a normal `ScrollController`, opening a `showDialog`, `showModalBottomSheet`, or any route with a `ModalBarrier` blocks scroll on the page behind it because the barrier swallows pointer events inside Flutter. Here the browser owns the outer scroll, so wheel, trackpad pan, and touch drag reach `window` before Flutter sees them and the document keeps scrolling underneath the dialog. If you need the background frozen while a modal is open, set `document.body.style.overflow = 'hidden'` and `document.documentElement.style.overflow = 'hidden'` on push, and restore on pop.
 
@@ -160,7 +164,6 @@ RefreshIndicator(
     preserveTopOverscroll: true,
     child: ListView.builder(
       primary: false,
-      physics: const ClampingScrollPhysics(),
       itemCount: 50,
       itemBuilder: (BuildContext context, int index) {
         return ListTile(title: Text('Refresh item $index'));
@@ -175,4 +178,5 @@ RefreshIndicator(
 - Revealed-content placeholder height for lazy Flutter lists.
 - `animateTo` and `jumpTo` delegation to browser scroll.
 - Nested Flutter scrollable overscroll forwarding.
+- Touches on inner Flutter scrollables do not also pan the page on mobile browsers.
 - Comprehensive demo coverage for iframes, keyboard scroll, overlays, and programmatic scroll.

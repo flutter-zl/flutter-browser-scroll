@@ -109,6 +109,9 @@ class _FakeExternalScroller implements ExternalScroller {
   void scrollBy(double delta) {}
 
   @override
+  void setNativePanBlocked(bool blocked) {}
+
+  @override
   void setup() {}
 
   @override

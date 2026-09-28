@@ -4,6 +4,7 @@ library;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -276,7 +277,148 @@ void main() {
 
       expect(scroller.scrollByCalls, <double>[-20]);
     });
+
+    testWidgets('blocks native pan for touch on inner vertical list', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
+      );
+
+      final TestGesture gesture = await tester.startGesture(
+        const Offset(400, 100),
+        kind: PointerDeviceKind.touch,
+      );
+      expect(scroller.nativePanBlockedCalls, <bool>[true]);
+
+      await gesture.up();
+      expect(scroller.nativePanBlockedCalls, <bool>[true, false]);
+    });
+
+    testWidgets('does not block native pan for touch outside inner list', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
+      );
+
+      final TestGesture gesture = await tester.startGesture(
+        const Offset(400, 500),
+        kind: PointerDeviceKind.touch,
+      );
+      await gesture.up();
+
+      expect(scroller.nativePanBlockedCalls, <bool>[false, false]);
+    });
+
+    testWidgets('does not block native pan for touch on horizontal list', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          child: const _InnerListPage(scrollDirection: Axis.horizontal),
+        ),
+      );
+
+      final TestGesture gesture = await tester.startGesture(
+        const Offset(400, 100),
+        kind: PointerDeviceKind.touch,
+      );
+      await gesture.up();
+
+      expect(scroller.nativePanBlockedCalls, <bool>[false, false]);
+    });
+
+    testWidgets('ignores mouse pointers on inner list', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
+      );
+
+      final TestGesture gesture = await tester.startGesture(
+        const Offset(400, 100),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.up();
+
+      expect(scroller.nativePanBlockedCalls, isEmpty);
+    });
+
+    testWidgets(
+      'inner list chains bottom overscroll to the page on iOS',
+      (WidgetTester tester) async {
+        final scroller = _FakeExternalScroller();
+
+        await tester.pumpWidget(
+          _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
+        );
+
+        await tester.drag(find.byType(ListView), const Offset(0, -2500));
+        await tester.pump();
+
+        expect(scroller.scrollByCalls, isNotEmpty);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    );
+
+    testWidgets(
+      'explicit BouncingScrollPhysics on an inner list is kept',
+      (WidgetTester tester) async {
+        final scroller = _FakeExternalScroller();
+
+        await tester.pumpWidget(
+          _TestHost(
+            scrollerApi: scroller,
+            child: const _InnerListPage(physics: BouncingScrollPhysics()),
+          ),
+        );
+
+        await tester.drag(find.byType(ListView), const Offset(0, -2500));
+        await tester.pump();
+
+        expect(scroller.scrollByCalls, isEmpty);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    );
   });
+}
+
+class _InnerListPage extends StatelessWidget {
+  const _InnerListPage({this.scrollDirection = Axis.vertical, this.physics});
+
+  final Axis scrollDirection;
+  final ScrollPhysics? physics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        SizedBox(
+          height: 300,
+          child: ListView.builder(
+            scrollDirection: scrollDirection,
+            physics: physics,
+            itemExtent: 100,
+            itemCount: 20,
+            itemBuilder: (BuildContext context, int index) {
+              return Text('Item $index');
+            },
+          ),
+        ),
+        const SizedBox(width: 800, height: 900),
+      ],
+    );
+  }
 }
 
 class _TestHost extends StatelessWidget {
@@ -360,6 +502,7 @@ class _FakeExternalScroller implements ExternalScroller {
   int scrollListenerCount = 0;
   int visibleRectListenerCount = 0;
   final List<double> scrollByCalls = <double>[];
+  final List<bool> nativePanBlockedCalls = <bool>[];
 
   @override
   double get scrollTop => 0;
@@ -390,6 +533,11 @@ class _FakeExternalScroller implements ExternalScroller {
   @override
   void scrollBy(double delta) {
     scrollByCalls.add(delta);
+  }
+
+  @override
+  void setNativePanBlocked(bool blocked) {
+    nativePanBlockedCalls.add(blocked);
   }
 
   @override

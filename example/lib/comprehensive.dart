@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'dart:ui_web' as ui_web;
+
 import 'package:web/web.dart' as web;
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 
@@ -18,8 +20,7 @@ void registerPlatformViews() {
     iframe.style.border = 'none';
     iframe.style.width = '100%';
     iframe.style.height = '100%';
-    iframe.allow =
-        'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
     iframe.setAttribute('allowfullscreen', 'true');
     return iframe;
   });
@@ -261,9 +262,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
         description: widget.useBrowserScroller
             ? 'An inner Flutter ListView inside the browser-scrolled '
                   'page. Scroll inside it; at top and bottom edges the '
-                  'parent page takes over. Known limitation: on mobile '
-                  'browsers the page double-scrolls while the inner list '
-                  'also scrolls. Desktop does not show this.'
+                  'parent page takes over.'
             : 'An inner Flutter ListView. Without flutter_browser_scroll, '
                   'on mobile, scroll stops at the list boundary and the '
                   'parent page does not continue. Desktop does not have '
@@ -288,10 +287,7 @@ class _TestPageBodyState extends State<_TestPageBody> {
                   'refresh indicator should appear. Overscroll at the '
                   'top edge is preserved so RefreshIndicator works. At '
                   'the bottom edge, the inner list clamps and the '
-                  'browser-owned parent page takes over. Known '
-                  'limitation: on mobile browsers the page can '
-                  'double-scroll while the inner list also scrolls, '
-                  'same as TEST 1.'
+                  'browser-owned parent page takes over.'
             : 'Pull down on this inner list when it is at its top. A '
                   'refresh indicator should appear (Flutter handles top-'
                   'edge overscroll natively). At the bottom edge on mobile, '
