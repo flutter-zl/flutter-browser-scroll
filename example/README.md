@@ -30,5 +30,3 @@ Then pick one entry to run:
 
 - After (package applied): https://flutter-demo-26-after.web.app
 - Before (no package): https://flutter-demo-26-before.web.app
-
-The earlier `v0.1.0-with-touch-listeners` snapshot is at https://flutter-demo-00-after.web.app and https://flutter-demo-00-before.web.app.
