@@ -10,8 +10,6 @@ Built on top of [Mouad Debbar's flutter-browser-scroll](https://github.com/mdebb
 
 This package is web-only. `BrowserScroller` uses web DOM APIs through its default `JsViewScroller`, so non-web platforms are not supported.
 
-The package is a polyfill-style bridge for browser-driven scrolling while Flutter's engine-level work, such as [flutter/flutter#184102](https://github.com/flutter/flutter/pull/184102), continues to evolve.
-
 ## Demo
 
 A comprehensive A/B demo is deployed:
