@@ -1,3 +1,7 @@
+// Copyright 2026 The Flutter Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 // https://github.com/flutter/flutter/issues/175892
 
 import 'package:flutter/material.dart';
