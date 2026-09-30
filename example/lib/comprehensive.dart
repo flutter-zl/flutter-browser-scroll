@@ -1,3 +1,7 @@
+// Copyright 2026 The Flutter Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 import 'package:flutter/material.dart';
 
 import 'dart:ui_web' as ui_web;
@@ -650,7 +654,8 @@ class _TestPageBodyState extends State<_TestPageBody> {
         content: const Text(
           'This dialog should appear centered in the viewport. '
           'Tapping outside or pressing the button should close it. '
-          'Scroll should be blocked while this is open.',
+          'Known limitation: the page behind this dialog still scrolls, '
+          'because the browser owns the page scroll.',
         ),
         actions: [
           TextButton(

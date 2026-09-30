@@ -28,7 +28,7 @@ dependencies:
   flutter_browser_scroll:
     git:
       url: https://github.com/flutter-zl/flutter-browser-scroll.git
-      ref: v0.1.0
+      ref: main
 ```
 
 The target mental model:
@@ -149,7 +149,7 @@ class _MyAppState extends State<MyApp> {
 
 ### Pull-to-refresh inside the page
 
-A plain inner Flutter scrollable inside `BrowserScroller` works without any wrapper: top-edge and bottom-edge overscroll chain to the page during active drag.
+A plain inner Flutter scrollable inside `BrowserScroller` works without any wrapper. Top-edge overscroll chains to the page during active drag only, so a bounce-back settle does not move the page. Bottom-edge overscroll chains during both drag and the fling that follows it.
 
 For a `RefreshIndicator`, wrap the inner scrollable in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so a pull-down at the top arms refresh instead of scrolling the page:
 
