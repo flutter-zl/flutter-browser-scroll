@@ -975,8 +975,16 @@ class _FlutterCard extends StatelessWidget {
           child: Text('$index'),
         ),
         title: Text('Flutter Widget $index'),
-        subtitle: const Text('Regular Flutter content in the scroll list'),
+        subtitle: const Text('Tappable row in the scroll list'),
         trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tapped Flutter Widget $index'),
+              duration: const Duration(milliseconds: 800),
+            ),
+          );
+        },
       ),
     );
   }

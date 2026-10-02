@@ -55,8 +55,7 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 
 ## Known limitations
 
-- With a screen reader active, a touch on a tappable item inside an inner list can scroll both the list and the page.
-- On iOS Safari, an inner-list handoff to the page can occasionally show a one-frame jump back of a few pixels.
+- On iOS, with semantics enabled, an inner-list handoff to the page can show a one-frame jump back of a few pixels. This affects Safari and Chrome on iOS, both WebKit.
 
 ## Usage
 
