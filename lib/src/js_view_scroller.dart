@@ -236,7 +236,9 @@ class JsViewScroller implements ExternalScroller {
     };
     (web.window).scrollTo(options.jsify()!);
 
-    if (!smooth) {
+    // Already there: the browser fires no scroll event, so nothing would
+    // resolve the future before the safety timeout.
+    if (!smooth || (web.window.scrollY - target).abs() < 1.0) {
       return Future<void>.value();
     }
 

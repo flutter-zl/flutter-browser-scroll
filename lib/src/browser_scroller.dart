@@ -206,6 +206,10 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   }
 
   bool _handleOverscrollNotification(OverscrollNotification notification) {
+    // Only vertical overscroll can continue into the page.
+    if (notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
     final bool shouldForward = shouldForwardOverscroll(
       overscroll: notification.overscroll,
       pixels: notification.metrics.pixels,

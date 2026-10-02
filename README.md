@@ -17,7 +17,7 @@ A comprehensive A/B demo is deployed:
 - **After** (package applied): https://flutter-demo-26-after.web.app
 - **Before** (no package, same UI): https://flutter-demo-26-before.web.app
 
-Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and platform views, keyboard scroll, and programmatic scroll between the two URLs. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
+Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and platform views, keyboard scroll, programmatic scroll, and a horizontal carousel between the two URLs. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
 
 ## Installation
 
@@ -52,7 +52,7 @@ The browser, not Flutter, drives the page scroll. That makes the page feel nativ
 - **`animateTo` uses the browser's smooth scroll.** You can still pass a `Duration` and a `Curve`, but the browser picks the actual timing and easing. The same call can look slightly different in Chrome, Safari, and Firefox. `Duration.zero` scrolls instantly. The returned `Future` completes when the page reaches the target, not after the `Duration` you passed.
 - **Browser scrolls send no `ScrollNotification`.** `controller.addListener` and `controller.offset` keep working, but `ScrollStartNotification`, `ScrollUpdateNotification`, and `ScrollEndNotification` are never dispatched, `position.isScrollingNotifier` stays `false`, and `position.userScrollDirection` stays `idle`. Widgets that rely on those, such as the auto-hiding `Scrollbar`, scroll-aware FABs, and custom refresh or load indicators, may not react when the user scrolls the page or when `animateTo` runs. `jumpTo` is the exception: it moves the Flutter position first and dispatches the usual notifications.
 
-For vertical inner Flutter scrollables, like a `ListView` placed inside the page, no extra setup is needed: a touch that starts on the inner scrollable scrolls only that scrollable, and top-edge and bottom-edge overscroll chain to the page automatically. Horizontal inner scrollables are left to the browser's default touch handling. If your inner scrollable hosts a `RefreshIndicator`, wrap it in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so the pull-down arms refresh instead of chaining to the page.
+For vertical inner Flutter scrollables, like a `ListView` placed inside the page, no extra setup is needed: a touch that starts on the inner scrollable scrolls only that scrollable, and top-edge and bottom-edge overscroll chain to the page automatically. Horizontal inner scrollables, like a `PageView` or a carousel, are left alone: their touches do not block the page pan and their edge overscroll never moves the page. If your inner scrollable hosts a `RefreshIndicator`, wrap it in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so the pull-down arms refresh instead of chaining to the page.
 
 Inner scrollables default to `ClampingScrollPhysics` inside `BrowserScroller`, on every platform. Bouncing physics never report the overscroll that the page handoff relies on, so without this default, inner lists on iOS would stop at their edges instead of continuing into the page. A scrollable that sets its own `physics` keeps them. With `BouncingScrollPhysics`, it bounces at its edges and does not hand off to the page.
 

@@ -394,6 +394,44 @@ void main() {
       },
       variant: TargetPlatformVariant.only(TargetPlatform.iOS),
     );
+
+    testWidgets('horizontal inner list overscroll does not scroll the page', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          child: const _InnerListPage(scrollDirection: Axis.horizontal),
+        ),
+      );
+
+      await tester.drag(find.byType(ListView), const Offset(-2500, 0));
+      await tester.pump();
+
+      expect(scroller.scrollByCalls, isEmpty);
+    });
+
+    // A plain test, not testWidgets: the scroller's safety timeout is a real
+    // Timer and FakeAsync would never fire it.
+    test('smooth scrollTo to the current position completes at once', () async {
+      final TestWidgetsFlutterBinding binding =
+          TestWidgetsFlutterBinding.ensureInitialized();
+      final scroller = JsViewScroller(
+        binding.platformDispatcher.implicitView!.viewId,
+      );
+      addTearDown(scroller.dispose);
+      scroller.setup();
+      // Pin to the top so the target is already reached.
+      await scroller.scrollTo(0);
+
+      final Stopwatch stopwatch = Stopwatch()..start();
+      await scroller.scrollTo(0, smooth: true);
+      stopwatch.stop();
+
+      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+    });
   });
 }
 

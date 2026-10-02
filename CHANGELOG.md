@@ -1,5 +1,10 @@
 ## Unreleased
 
+* Overscroll from horizontal inner scrollables no longer scrolls the page.
+  Only vertical overscroll is forwarded.
+* `BrowserScrollController.animateTo` now completes immediately when the page
+  is already at the target instead of waiting for the one-second safety
+  timeout.
 * Touches that start on an inner vertical Flutter scrollable no longer also
   pan the page on mobile browsers. `BrowserScroller` hit-tests each touch-down
   and cancels the browser's pan for that touch.
