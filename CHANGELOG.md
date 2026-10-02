@@ -16,6 +16,11 @@
 * Touches that start on an inner vertical Flutter scrollable no longer also
   pan the page on mobile browsers. `BrowserScroller` hit-tests each touch-down
   and cancels the browser's pan for that touch.
+* While a finger that started on an inner list is still down, handoff moves
+  the page in Flutter only, and the browser's scroll position catches up when
+  the finger lifts. Scrolling the window under a held finger made iOS WebKit
+  report stale pointer positions, which showed as the inner list stepping
+  back a few pixels during the handoff.
 * Inner scrollables inside `BrowserScroller` now default to
   `ClampingScrollPhysics`, so overscroll hands off to the page on iOS too. A
   scrollable that sets its own `physics` keeps them.

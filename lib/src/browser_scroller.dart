@@ -28,6 +28,8 @@ import 'placeholder_height.dart';
 /// scrolls only that scrollable, and its top-edge and bottom-edge overscroll
 /// continue into the page. Top-edge overscroll chains only during an active
 /// drag; bottom-edge overscroll chains during drag and the fling that follows.
+/// While the finger is still down, the page moves in Flutter only and the
+/// browser's scroll position catches up when that finger lifts.
 /// Wrap a scrollable in [BrowserScrollChild] with `preserveTopOverscroll` to
 /// keep top-edge gestures for a `RefreshIndicator`.
 ///
@@ -78,6 +80,14 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   double _lastReportedHeight = 0;
   double _pendingOverscrollDelta = 0;
   bool _overscrollFlushScheduled = false;
+
+  // Page offset that a handoff has moved Flutter to while a finger is still
+  // down on an inner list. The browser is only scrolled to it when that
+  // finger lifts: on iOS WebKit, scrolling the window under a held finger
+  // makes pointer events report the finger at a stale position, which Flutter
+  // reads as a backward drag of the inner list. `<flutter-view>` is fixed, so
+  // the window's own position is not visible while it lags.
+  double? _deferredPageOffset;
 
   @override
   void initState() {
@@ -133,6 +143,10 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   }
 
   void _updateScrollPosition() {
+    // The page is ahead of the browser until the finger lifts.
+    if (_deferredPageOffset != null) {
+      return;
+    }
     if (_scrollController.hasClients) {
       _scrollController.syncFromBrowser(
         clampDouble(
@@ -204,6 +218,9 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       return;
     }
     scrollerApi.setNativePanBlocked(_nativePanBlockingPointers.isNotEmpty);
+    if (_nativePanBlockingPointers.isEmpty) {
+      _commitDeferredPageOffset();
+    }
   }
 
   bool _hitsInnerVerticalScrollable(Offset position) {
@@ -260,9 +277,34 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       final double pendingDelta = _pendingOverscrollDelta;
       _pendingOverscrollDelta = 0;
       if (pendingDelta.abs() > 0.5) {
-        scrollerApi.scrollBy(pendingDelta);
+        if (_nativePanBlockingPointers.isNotEmpty &&
+            _scrollController.hasClients) {
+          _deferPageDelta(pendingDelta);
+        } else {
+          scrollerApi.scrollBy(pendingDelta);
+        }
       }
     });
+  }
+
+  void _deferPageDelta(double delta) {
+    final ScrollPosition position = _scrollController.position;
+    final double target = clampDouble(
+      (_deferredPageOffset ?? position.pixels) + delta,
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    _deferredPageOffset = target;
+    _scrollController.syncFromBrowser(target);
+  }
+
+  void _commitDeferredPageOffset() {
+    final double? target = _deferredPageOffset;
+    if (target == null) {
+      return;
+    }
+    _deferredPageOffset = null;
+    scrollerApi.scrollTo(target);
   }
 
   @override

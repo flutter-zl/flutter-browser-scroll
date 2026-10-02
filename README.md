@@ -53,10 +53,6 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 - Browser scrolls do not emit `ScrollNotification`s. Widgets that depend on them, such as an auto-hiding `Scrollbar` or a FAB that hides on scroll, will not react to page scrolls. Use `controller.addListener` instead.
 - Inner scrollables default to `ClampingScrollPhysics` on every platform, so their edge overscroll can hand off to the page. Set `physics` explicitly to override.
 
-## Known limitations
-
-- On iOS, with semantics enabled, an inner-list handoff to the page can show a one-frame jump back of a few pixels. This affects Safari and Chrome on iOS, both WebKit.
-
 ## Usage
 
 ### Basic page

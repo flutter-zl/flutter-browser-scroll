@@ -368,10 +368,104 @@ void main() {
           _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
         );
 
-        await tester.drag(find.byType(ListView), const Offset(0, -2500));
+        final TestGesture gesture = await tester.startGesture(
+          tester.getCenter(find.byType(ListView)),
+        );
+        for (int i = 0; i < 25; i++) {
+          await gesture.moveBy(const Offset(0, -100));
+          await tester.pump();
+        }
+        expect(scroller.scrollByCalls, isEmpty);
+        expect(scroller.scrollToCalls, isEmpty);
+        await gesture.up();
         await tester.pump();
 
-        expect(scroller.scrollByCalls, isNotEmpty);
+        // While the finger is down the page is moved in Flutter only, then
+        // the browser is scrolled to match once when the finger lifts.
+        expect(scroller.scrollByCalls, isEmpty);
+        expect(scroller.scrollToCalls, hasLength(1));
+        expect(scroller.scrollToCalls.single, greaterThan(0));
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    );
+
+    testWidgets(
+      'browser scroll events do not move the page while a handoff is held',
+      (WidgetTester tester) async {
+        final scroller = _FakeExternalScroller();
+        final controller = BrowserScrollController();
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          _TestHost(
+            scrollerApi: scroller,
+            controller: controller,
+            child: const _InnerListPage(),
+          ),
+        );
+
+        final TestGesture gesture = await tester.startGesture(
+          tester.getCenter(find.byType(ListView)),
+        );
+        for (int i = 0; i < 25; i++) {
+          await gesture.moveBy(const Offset(0, -100));
+          await tester.pump();
+        }
+        final double heldPixels = controller.position.pixels;
+        expect(heldPixels, greaterThan(0));
+
+        // The fake browser still reports scrollTop 0.
+        for (final void Function() listener in scroller.scrollListeners) {
+          listener();
+        }
+        expect(controller.position.pixels, heldPixels);
+
+        await gesture.up();
+        await tester.pump();
+        for (final void Function() listener in scroller.scrollListeners) {
+          listener();
+        }
+        expect(controller.position.pixels, 0);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    );
+
+    testWidgets(
+      'overscroll after the finger lifts scrolls the browser page',
+      (WidgetTester tester) async {
+        final scroller = _FakeExternalScroller();
+
+        await tester.pumpWidget(
+          _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
+        );
+
+        final TestGesture gesture = await tester.startGesture(
+          tester.getCenter(find.byType(ListView)),
+        );
+        for (int i = 0; i < 25; i++) {
+          await gesture.moveBy(const Offset(0, -100));
+          await tester.pump();
+        }
+        await gesture.up();
+        await tester.pump();
+        expect(scroller.scrollByCalls, isEmpty);
+
+        final BuildContext context = tester.element(find.text('Item 19'));
+        OverscrollNotification(
+          metrics: FixedScrollMetrics(
+            minScrollExtent: 0,
+            maxScrollExtent: 1700,
+            pixels: 1700,
+            viewportDimension: 300,
+            axisDirection: AxisDirection.down,
+            devicePixelRatio: 1,
+          ),
+          context: context,
+          overscroll: 15,
+        ).dispatch(context);
+        await tester.pump();
+
+        expect(scroller.scrollByCalls, <double>[15]);
       },
       variant: TargetPlatformVariant.only(TargetPlatform.iOS),
     );
@@ -392,6 +486,7 @@ void main() {
         await tester.pump();
 
         expect(scroller.scrollByCalls, isEmpty);
+        expect(scroller.scrollToCalls, isEmpty);
       },
       variant: TargetPlatformVariant.only(TargetPlatform.iOS),
     );
@@ -570,6 +665,8 @@ class _FakeExternalScroller implements ExternalScroller {
   int scrollListenerCount = 0;
   int visibleRectListenerCount = 0;
   final List<double> scrollByCalls = <double>[];
+  final List<double> scrollToCalls = <double>[];
+  final List<void Function()> scrollListeners = <void Function()>[];
   final List<bool> nativePanBlockedCalls = <bool>[];
 
   @override
@@ -578,6 +675,7 @@ class _FakeExternalScroller implements ExternalScroller {
   @override
   void addScrollListener(void Function() callback) {
     scrollListenerCount += 1;
+    scrollListeners.add(callback);
   }
 
   @override
@@ -596,7 +694,9 @@ class _FakeExternalScroller implements ExternalScroller {
   }
 
   @override
-  Future<void> scrollTo(double offset, {bool smooth = false}) async {}
+  Future<void> scrollTo(double offset, {bool smooth = false}) async {
+    scrollToCalls.add(offset);
+  }
 
   @override
   void scrollBy(double delta) {
