@@ -1,5 +1,13 @@
 ## Unreleased
 
+* Added `BrowserScrollController.lockPageScroll` and `unlockPageScroll` to
+  freeze the page for wheel, trackpad, touch, and keyboard input, and
+  `BrowserScrollRouteObserver` to do so automatically while a `PopupRoute`
+  is open.
+* `ExternalScroller` gained `setPageScrollLocked`. The default is a no-op, so
+  existing implementations keep compiling but do not freeze the page.
+* `JsViewScroller` now sets `scrollbar-gutter: stable` on the document so a
+  page lock does not shift content sideways on desktop.
 * Overscroll from horizontal inner scrollables no longer scrolls the page.
   Only vertical overscroll is forwarded.
 * `BrowserScrollController.animateTo` now completes immediately when the page

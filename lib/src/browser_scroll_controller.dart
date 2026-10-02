@@ -26,13 +26,46 @@ class BrowserScrollController extends ScrollController {
 
   ExternalScroller? _scrollerApi;
   void Function(double target)? _prepareTarget;
+  int _pageScrollLocks = 0;
 
   set scrollerApi(ExternalScroller? value) {
     _scrollerApi = value;
+    if (_pageScrollLocks > 0) {
+      value?.setPageScrollLocked(true);
+    }
   }
 
   set prepareTarget(void Function(double target)? value) {
     _prepareTarget = value;
+  }
+
+  /// Whether [lockPageScroll] has been called more times than
+  /// [unlockPageScroll].
+  bool get isPageScrollLocked => _pageScrollLocks > 0;
+
+  /// Freezes the page so wheel, trackpad, touch, and keyboard input no longer
+  /// scroll it. Flutter scrollables and platform views keep working.
+  ///
+  /// Calls nest: the page stays frozen until every lock has been released
+  /// with [unlockPageScroll]. [BrowserScrollRouteObserver] calls this for
+  /// modal routes.
+  void lockPageScroll() {
+    _pageScrollLocks += 1;
+    if (_pageScrollLocks == 1) {
+      _scrollerApi?.setPageScrollLocked(true);
+    }
+  }
+
+  /// Releases one lock taken by [lockPageScroll].
+  void unlockPageScroll() {
+    assert(_pageScrollLocks > 0, 'unlockPageScroll called without a lock.');
+    if (_pageScrollLocks == 0) {
+      return;
+    }
+    _pageScrollLocks -= 1;
+    if (_pageScrollLocks == 0) {
+      _scrollerApi?.setPageScrollLocked(false);
+    }
   }
 
   void syncFromBrowser(double offset) {

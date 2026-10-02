@@ -55,11 +55,8 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 
 ## Known limitations
 
-On iOS Safari, the browser occasionally discards one frame of an inner-list handoff to the page. On a physical iPhone this happened in about 1 of 100 handoff frames, and it shows as a one-frame jump back of a few pixels.
-
-When a screen reader is on, Flutter's engine can deliver a touch on a tappable item late. The package may then decide too late to block the page pan, and that touch can scroll both the inner list and the page.
-
-Modal Flutter overlays do not freeze the page. With a normal `ScrollController`, opening a `showDialog`, `showModalBottomSheet`, or any route with a `ModalBarrier` blocks scroll on the page behind it because the barrier swallows pointer events inside Flutter. Here the browser owns the outer scroll, so wheel, trackpad pan, and touch drag reach `window` before Flutter sees them and the document keeps scrolling underneath the dialog. If you need the background frozen while a modal is open, set `document.body.style.overflow = 'hidden'` and `document.documentElement.style.overflow = 'hidden'` on push, and restore on pop.
+- With a screen reader active, a touch on a tappable item inside an inner list can scroll both the list and the page.
+- On iOS Safari, an inner-list handoff to the page can occasionally show a one-frame jump back of a few pixels.
 
 ## Usage
 
@@ -144,6 +141,21 @@ class _MyAppState extends State<MyApp> {
 }
 ```
 
+### Dialogs and bottom sheets
+
+The browser keeps scrolling the page under a Flutter modal unless you tell it not to. Add `BrowserScrollRouteObserver` to freeze the page while any `showDialog`, `showModalBottomSheet`, menu, or dropdown is open:
+
+```dart
+MaterialApp(
+  navigatorObservers: <NavigatorObserver>[
+    BrowserScrollRouteObserver(_controller),
+  ],
+  home: ...,
+)
+```
+
+For custom cases, call `_controller.lockPageScroll()` and `unlockPageScroll()` directly. Locks nest, so the page stays frozen until the last one is released.
+
 ### Pull-to-refresh inside the page
 
 A plain inner Flutter scrollable inside `BrowserScroller` works without any wrapper. Top-edge overscroll chains to the page during active drag only, so a bounce-back settle does not move the page. Bottom-edge overscroll chains during both drag and the fling that follows it.
@@ -172,4 +184,5 @@ RefreshIndicator(
 - `animateTo` and `jumpTo` delegation to browser scroll.
 - Nested Flutter scrollable overscroll forwarding.
 - Touches on inner Flutter scrollables do not also pan the page on mobile browsers.
+- Page scroll lock for modal routes via `BrowserScrollRouteObserver`.
 - Comprehensive demo coverage for iframes, keyboard scroll, overlays, and programmatic scroll.

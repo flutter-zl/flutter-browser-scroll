@@ -12,6 +12,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_browser_scroll/flutter_browser_scroll.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:web/web.dart' as web;
 
 void main() {
   group('BrowserScroller', () {
@@ -432,6 +433,31 @@ void main() {
 
       expect(stopwatch.elapsedMilliseconds, lessThan(500));
     });
+
+    testWidgets('page lock toggles html overflow and dispose restores it', (
+      WidgetTester tester,
+    ) async {
+      final web.HTMLElement html =
+          web.document.documentElement! as web.HTMLElement;
+      final String originalOverflow = html.style.overflow;
+      final String originalGutter = html.style.getPropertyValue(
+        'scrollbar-gutter',
+      );
+      final scroller = JsViewScroller(tester.view.viewId);
+      scroller.setup();
+      expect(html.style.overflow, 'auto');
+      expect(html.style.getPropertyValue('scrollbar-gutter'), 'stable');
+
+      scroller.setPageScrollLocked(true);
+      expect(html.style.overflow, 'hidden');
+
+      scroller.setPageScrollLocked(false);
+      expect(html.style.overflow, 'auto');
+
+      scroller.dispose();
+      expect(html.style.overflow, originalOverflow);
+      expect(html.style.getPropertyValue('scrollbar-gutter'), originalGutter);
+    });
   });
 }
 
@@ -581,6 +607,9 @@ class _FakeExternalScroller implements ExternalScroller {
   void setNativePanBlocked(bool blocked) {
     nativePanBlockedCalls.add(blocked);
   }
+
+  @override
+  void setPageScrollLocked(bool locked) {}
 
   @override
   void setup() {

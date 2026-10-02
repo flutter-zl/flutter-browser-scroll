@@ -37,7 +37,9 @@ class JsViewScroller implements ExternalScroller {
   Timer? _pendingScrollIdleTimer;
   double? _pendingScrollTarget;
   bool _nativePanBlocked = false;
+  bool _pageScrollLocked = false;
   bool _touchMoveListenerAttached = false;
+  String? _savedScrollbarGutter;
 
   ui.Rect _lastVisibleRect = ui.Rect.zero;
 
@@ -102,18 +104,19 @@ class JsViewScroller implements ExternalScroller {
     documentElement.style
       ..overflow = 'auto'
       ..height = 'auto';
+    // Keep the scrollbar's space reserved so hiding it during a page lock
+    // does not shift the content sideways.
+    _savedScrollbarGutter = documentElement.style.getPropertyValue(
+      'scrollbar-gutter',
+    );
+    documentElement.style.setProperty('scrollbar-gutter', 'stable');
 
     // With touch-action: pan-y, the browser can pan the page while Flutter
     // scrolls an inner scrollable under the same finger. Once touch-action
     // allows the pan, preventDefault on a non-passive touchmove is the only
     // reliable way to cancel it. BrowserScroller decides which touches to
     // block through setNativePanBlocked.
-    body.addEventListener(
-      'touchmove',
-      _jsTouchMoveListener,
-      <String, Object>{'passive': false, 'capture': true}.jsify()!,
-    );
-    _touchMoveListenerAttached = true;
+    _attachTouchMoveListener();
 
     final web.Element? flutterView = body.querySelector('flutter-view');
     if (flutterView case final web.HTMLElement view) {
@@ -122,8 +125,21 @@ class JsViewScroller implements ExternalScroller {
     }
   }
 
+  void _attachTouchMoveListener() {
+    if (_touchMoveListenerAttached) {
+      return;
+    }
+    web.document.body!.addEventListener(
+      'touchmove',
+      _jsTouchMoveListener,
+      <String, Object>{'passive': false, 'capture': true}.jsify()!,
+    );
+    _touchMoveListenerAttached = true;
+  }
+
   void _touchMoveListener(web.Event event) {
-    if (_nativePanBlocked && !_isPlatformViewEvent(event)) {
+    if ((_nativePanBlocked || _pageScrollLocked) &&
+        !_isPlatformViewEvent(event)) {
       event.preventDefault();
     }
   }
@@ -263,6 +279,23 @@ class JsViewScroller implements ExternalScroller {
     _nativePanBlocked = blocked;
   }
 
+  @override
+  void setPageScrollLocked(bool locked) {
+    if (_pageScrollLocked == locked) {
+      return;
+    }
+    _pageScrollLocked = locked;
+    final web.HTMLElement documentElement =
+        web.document.documentElement! as web.HTMLElement;
+    // overflow: hidden stops wheel, trackpad, and keyboard scrolling. iOS
+    // Safari still lets touch through, so touch is stopped by preventDefault
+    // in the touchmove listener.
+    documentElement.style.overflow = locked ? 'hidden' : 'auto';
+    if (locked) {
+      _attachTouchMoveListener();
+    }
+  }
+
   void _checkPendingScroll() {
     final double? target = _pendingScrollTarget;
     if (target == null) {
@@ -302,6 +335,7 @@ class JsViewScroller implements ExternalScroller {
   void dispose() {
     _completePendingScroll();
     _nativePanBlocked = false;
+    _pageScrollLocked = false;
     _observer?.disconnect();
     if (_scrollListeners.isNotEmpty) {
       _scrollTarget.removeEventListener('scroll', _jsScrollListener);
@@ -319,6 +353,13 @@ class JsViewScroller implements ExternalScroller {
     _bodyStyleSnapshot?.restore();
     _documentElementStyleSnapshot?.restore();
     _fixedViewStyleSnapshot?.restore();
+    if (_savedScrollbarGutter case final String saved) {
+      (web.document.documentElement! as web.HTMLElement).style.setProperty(
+            'scrollbar-gutter',
+            saved,
+          );
+      _savedScrollbarGutter = null;
+    }
     _hostStyleSnapshot = null;
     _bodyStyleSnapshot = null;
     _documentElementStyleSnapshot = null;

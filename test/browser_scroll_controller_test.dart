@@ -50,6 +50,43 @@ void main() {
       expect(scroller.scrollCalls.single.offset, 600);
     });
 
+    test('page scroll lock is reference counted', () {
+      final scroller = _FakeExternalScroller();
+      final controller = BrowserScrollController()..scrollerApi = scroller;
+
+      controller.lockPageScroll();
+      controller.lockPageScroll();
+      expect(scroller.lockCalls, <bool>[true]);
+      expect(controller.isPageScrollLocked, isTrue);
+
+      controller.unlockPageScroll();
+      expect(scroller.lockCalls, <bool>[true]);
+      expect(controller.isPageScrollLocked, isTrue);
+
+      controller.unlockPageScroll();
+      expect(scroller.lockCalls, <bool>[true, false]);
+      expect(controller.isPageScrollLocked, isFalse);
+    });
+
+    test('lock taken before the scroller attaches is applied on attach', () {
+      final scroller = _FakeExternalScroller();
+      final controller = BrowserScrollController()..lockPageScroll();
+
+      controller.scrollerApi = scroller;
+
+      expect(scroller.lockCalls, <bool>[true]);
+    });
+
+    test('unlock without a lock does not go negative', () {
+      final scroller = _FakeExternalScroller();
+      final controller = BrowserScrollController()..scrollerApi = scroller;
+
+      expect(controller.unlockPageScroll, throwsAssertionError);
+      controller.lockPageScroll();
+
+      expect(scroller.lockCalls, <bool>[true]);
+    });
+
     testWidgets('syncFromBrowser does not cancel active drag activity', (
       WidgetTester tester,
     ) async {
@@ -88,6 +125,7 @@ void main() {
 
 class _FakeExternalScroller implements ExternalScroller {
   final List<_ScrollCall> scrollCalls = <_ScrollCall>[];
+  final List<bool> lockCalls = <bool>[];
 
   @override
   double get scrollTop => 0;
@@ -114,6 +152,11 @@ class _FakeExternalScroller implements ExternalScroller {
 
   @override
   void setNativePanBlocked(bool blocked) {}
+
+  @override
+  void setPageScrollLocked(bool locked) {
+    lockCalls.add(locked);
+  }
 
   @override
   void setup() {}

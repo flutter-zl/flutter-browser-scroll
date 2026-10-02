@@ -97,37 +97,16 @@ void registerPlatformViews() {
   });
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key, required this.useBrowserScroller});
 
   final bool useBrowserScroller;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: useBrowserScroller
-          ? 'Browser Scroll - Comprehensive Test (After)'
-          : 'Browser Scroll - Comprehensive Test (Before)',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: ComprehensiveTestPage(useBrowserScroller: useBrowserScroller),
-    );
-  }
+  State<MyApp> createState() => _MyAppState();
 }
 
-class ComprehensiveTestPage extends StatefulWidget {
-  const ComprehensiveTestPage({super.key, required this.useBrowserScroller});
-
-  final bool useBrowserScroller;
-
-  @override
-  State<ComprehensiveTestPage> createState() => _ComprehensiveTestPageState();
-}
-
-class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
+class _MyAppState extends State<MyApp> {
   final BrowserScrollController _scrollController = BrowserScrollController();
 
   @override
@@ -138,16 +117,55 @@ class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
 
   @override
   Widget build(BuildContext context) {
+    return MaterialApp(
+      title: widget.useBrowserScroller
+          ? 'Browser Scroll - Comprehensive Test (After)'
+          : 'Browser Scroll - Comprehensive Test (Before)',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      // Freezes the browser page while a dialog, sheet, or menu is open.
+      navigatorObservers: <NavigatorObserver>[
+        if (widget.useBrowserScroller)
+          BrowserScrollRouteObserver(_scrollController),
+      ],
+      home: ComprehensiveTestPage(
+        useBrowserScroller: widget.useBrowserScroller,
+        controller: _scrollController,
+      ),
+    );
+  }
+}
+
+class ComprehensiveTestPage extends StatefulWidget {
+  const ComprehensiveTestPage({
+    super.key,
+    required this.useBrowserScroller,
+    required this.controller,
+  });
+
+  final bool useBrowserScroller;
+  final BrowserScrollController controller;
+
+  @override
+  State<ComprehensiveTestPage> createState() => _ComprehensiveTestPageState();
+}
+
+class _ComprehensiveTestPageState extends State<ComprehensiveTestPage> {
+  BrowserScrollController get _scrollController => widget.controller;
+
+  @override
+  Widget build(BuildContext context) {
     final String introText = widget.useBrowserScroller
         ? 'This is the AFTER demo. The flutter_browser_scroll package is '
               'applied. The outer page scroll is owned by the browser; '
               'Flutter mirrors the browser scroll position via '
               'BrowserScrollController. Inner Flutter scrollables chain '
-              'their overscroll to the parent page. Known limitation: on '
-              'mobile browsers a nested Flutter scrollable can '
-              'double-scroll because the browser pans the document while '
-              'Flutter also scrolls the inner list. Compare with the '
-              'BEFORE demo to see what the package adds.'
+              'their overscroll to the parent page, and dialogs freeze the '
+              'page behind them. Compare with the BEFORE demo to see what '
+              'the package adds.'
         : 'This is the BEFORE demo. The flutter_browser_scroll package is '
               'NOT applied. The outer page is scrolled by Flutter, not the '
               'browser. Inner Flutter scrollables do not chain to the '
@@ -678,11 +696,30 @@ class _TestPageBodyState extends State<_TestPageBody> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Test Dialog'),
-        content: const Text(
-          'This dialog should appear centered in the viewport. '
-          'Tapping outside or pressing the button should close it. '
-          'Known limitation: the page behind this dialog still scrolls, '
-          'because the browser owns the page scroll.',
+        content: SizedBox(
+          width: 320,
+          height: 300,
+          child: ListView.builder(
+            primary: false,
+            itemCount: 30,
+            itemBuilder: (BuildContext context, int index) {
+              if (index == 0) {
+                return const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Scroll this list. Only the list should move; the page '
+                    'behind the dialog should stay frozen, including when '
+                    'the list reaches its top or bottom.',
+                  ),
+                );
+              }
+              return ListTile(
+                dense: true,
+                leading: CircleAvatar(radius: 12, child: Text('$index')),
+                title: Text('Dialog row $index'),
+              );
+            },
+          ),
         ),
         actions: [
           TextButton(
