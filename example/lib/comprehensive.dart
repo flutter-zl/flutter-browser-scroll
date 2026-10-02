@@ -445,12 +445,39 @@ class _TestPageBodyState extends State<_TestPageBody> {
         ),
       ),
 
+      // TEST 9: Horizontal carousel
+      _TestSection(
+        number: 9,
+        title: 'Horizontal Carousel',
+        description: widget.useBrowserScroller
+            ? 'Swipe the cards sideways and keep going past the last one. '
+                  'The page must not move. A vertical swipe on the cards '
+                  'scrolls the page as usual.'
+            : 'Same carousel without flutter_browser_scroll, for '
+                  'comparison. Sideways overscroll never affects the page.',
+        color: Colors.indigo,
+        child: SizedBox(
+          height: 120,
+          child: ListView.builder(
+            primary: false,
+            scrollDirection: Axis.horizontal,
+            itemCount: 10,
+            itemBuilder: (BuildContext context, int index) {
+              return SizedBox(
+                width: 260,
+                child: _FlutterCard(index: index + 1),
+              );
+            },
+          ),
+        ),
+      ),
+
       // More content for scrolling
       for (int i = 10; i <= 25; i++) _FlutterCard(index: i),
 
-      // TEST 9: Bottom reached
+      // TEST 10: Bottom reached
       _TestSection(
-        number: 9,
+        number: 10,
         title: 'Bottom Reached',
         description: widget.useBrowserScroller
             ? 'You scrolled to the bottom of the browser-owned page. All '
