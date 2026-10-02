@@ -18,6 +18,26 @@ import 'js_view_scroller.dart';
 import 'overscroll_forwarding.dart';
 import 'placeholder_height.dart';
 
+/// Lets the browser own the outermost scroll of a Flutter Web page.
+///
+/// Wrap the page content in this widget. The browser scrolls the document and
+/// the Flutter position mirrors it; see [BrowserScrollController] for how that
+/// differs from a normal controller.
+///
+/// Inner vertical scrollables need no setup. A touch that starts on one
+/// scrolls only that scrollable, and its top-edge and bottom-edge overscroll
+/// continue into the page. Top-edge overscroll chains only during an active
+/// drag; bottom-edge overscroll chains during drag and the fling that follows.
+/// Wrap a scrollable in [BrowserScrollChild] with `preserveTopOverscroll` to
+/// keep top-edge gestures for a `RefreshIndicator`.
+///
+/// Horizontal inner scrollables are left alone. Their touches do not block
+/// the page pan and their edge overscroll never moves the page.
+///
+/// Inner scrollables default to [ClampingScrollPhysics] on every platform.
+/// [BouncingScrollPhysics] stretches past the edge instead of reporting
+/// overscroll, so with it the page handoff never triggers. A scrollable that
+/// sets its own `physics` keeps them.
 class BrowserScroller extends StatefulWidget {
   const BrowserScroller({
     super.key,

@@ -8,6 +8,19 @@ import 'package:flutter/widgets.dart';
 
 import 'external_scroller.dart';
 
+/// A [ScrollController] for a page whose scroll is owned by the browser.
+///
+/// The browser drives the page. Scroll events from the browser are mirrored
+/// into this controller through [syncFromBrowser], which updates
+/// [ScrollController.offset] and notifies listeners but does not dispatch any
+/// [ScrollNotification]. `ScrollStartNotification`,
+/// `ScrollUpdateNotification`, and `ScrollEndNotification` never fire for
+/// browser-driven scrolls, `position.isScrollingNotifier` stays `false`, and
+/// `position.userScrollDirection` stays `idle`. Code that needs to react to
+/// page scrolls should use [addListener].
+///
+/// [jumpTo] is the one exception: it moves the Flutter position first, which
+/// dispatches the usual notifications, and then tells the browser to follow.
 class BrowserScrollController extends ScrollController {
   BrowserScrollController();
 
@@ -31,6 +44,14 @@ class BrowserScrollController extends ScrollController {
     positions.first.forcePixels(offset);
   }
 
+  /// Scrolls the page to [offset] using the browser's native smooth scroll.
+  ///
+  /// The browser picks the timing and easing, so [duration] and [curve] are
+  /// ignored except that a [duration] of [Duration.zero] scrolls instantly.
+  /// The same call can look slightly different across browsers.
+  ///
+  /// The returned future completes when the page reaches the target, or
+  /// immediately if it is already there. It does not wait for [duration].
   @override
   Future<void> animateTo(
     double offset, {

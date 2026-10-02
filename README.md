@@ -45,16 +45,13 @@ The target mental model:
 
 No platform-view scroll reimplementation. No wheel interception. The package only adds the small Flutter-side bridges the browser cannot infer from canvas-painted scrollables.
 
-## Things to know
+## Behavior differences
 
-The browser, not Flutter, drives the page scroll. That makes the page feel native, but two things behave differently from a normal `ScrollController`:
+Because the browser owns the page scroll, a few things differ from a normal `ScrollController`:
 
-- **`animateTo` uses the browser's smooth scroll.** You can still pass a `Duration` and a `Curve`, but the browser picks the actual timing and easing. The same call can look slightly different in Chrome, Safari, and Firefox. `Duration.zero` scrolls instantly. The returned `Future` completes when the page reaches the target, not after the `Duration` you passed.
-- **Browser scrolls send no `ScrollNotification`.** `controller.addListener` and `controller.offset` keep working, but `ScrollStartNotification`, `ScrollUpdateNotification`, and `ScrollEndNotification` are never dispatched, `position.isScrollingNotifier` stays `false`, and `position.userScrollDirection` stays `idle`. Widgets that rely on those, such as the auto-hiding `Scrollbar`, scroll-aware FABs, and custom refresh or load indicators, may not react when the user scrolls the page or when `animateTo` runs. `jumpTo` is the exception: it moves the Flutter position first and dispatches the usual notifications.
-
-For vertical inner Flutter scrollables, like a `ListView` placed inside the page, no extra setup is needed: a touch that starts on the inner scrollable scrolls only that scrollable, and top-edge and bottom-edge overscroll chain to the page automatically. Horizontal inner scrollables, like a `PageView` or a carousel, are left alone: their touches do not block the page pan and their edge overscroll never moves the page. If your inner scrollable hosts a `RefreshIndicator`, wrap it in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so the pull-down arms refresh instead of chaining to the page.
-
-Inner scrollables default to `ClampingScrollPhysics` inside `BrowserScroller`, on every platform. Bouncing physics never report the overscroll that the page handoff relies on, so without this default, inner lists on iOS would stop at their edges instead of continuing into the page. A scrollable that sets its own `physics` keeps them. With `BouncingScrollPhysics`, it bounces at its edges and does not hand off to the page.
+- `animateTo` uses the browser's native smooth scroll. The `duration` and `curve` you pass are ignored.
+- Browser scrolls do not emit `ScrollNotification`s. Widgets that depend on them, such as an auto-hiding `Scrollbar` or a FAB that hides on scroll, will not react to page scrolls. Use `controller.addListener` instead.
+- Inner scrollables default to `ClampingScrollPhysics` on every platform, so their edge overscroll can hand off to the page. Set `physics` explicitly to override.
 
 ## Known limitations
 
