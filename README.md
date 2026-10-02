@@ -57,7 +57,7 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 
 ### Basic page
 
-Wrap your scrollable page content in `BrowserScroller`.
+Wrap your page content in `BrowserScroller`, using a `Column` rather than a `ListView`. The browser does the scrolling, so the whole page is built at once, and a `ListView` here throws an error.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -89,7 +89,7 @@ class MyApp extends StatelessWidget {
 
 ### Programmatic scroll
 
-When a button or other widget needs to scroll the page, pass a `BrowserScrollController` to `BrowserScroller`. It works like a normal `ScrollController`.
+When a button or other widget needs to scroll the page, pass a `BrowserScrollController` to `BrowserScroller`. It works like a normal `ScrollController`, with the differences listed under Behavior differences.
 
 ```dart
 class MyApp extends StatefulWidget {
@@ -138,7 +138,7 @@ class _MyAppState extends State<MyApp> {
 
 ### Dialogs and bottom sheets
 
-The browser keeps scrolling the page under a Flutter modal unless you tell it not to. Add `BrowserScrollRouteObserver` to freeze the page while any `showDialog`, `showModalBottomSheet`, menu, or dropdown is open:
+The browser keeps scrolling the page under a Flutter modal unless you tell it not to. Add `BrowserScrollRouteObserver` to freeze the page while any `showDialog`, `showModalBottomSheet`, `PopupMenuButton`, or `DropdownButton` is open:
 
 ```dart
 MaterialApp(
@@ -149,25 +149,30 @@ MaterialApp(
 )
 ```
 
-For custom cases, call `_controller.lockPageScroll()` and `unlockPageScroll()` directly. Locks nest, so the page stays frozen until the last one is released.
+`MenuAnchor` and `DropdownMenu` do not open a route, so the observer does not see them. For those and other custom cases, call `_controller.lockPageScroll()` and `unlockPageScroll()` directly. Locks nest, so the page stays frozen until the last one is released.
+
+### Inner scrollables
+
+A plain inner vertical Flutter scrollable inside `BrowserScroller` works without any wrapper. Give it a bounded height, such as a `SizedBox`. Top-edge overscroll chains to the page only during an active drag, so a fling that reaches the top does not move the page. Bottom-edge overscroll chains during both drag and the fling that follows it.
 
 ### Pull-to-refresh inside the page
-
-A plain inner Flutter scrollable inside `BrowserScroller` works without any wrapper. Top-edge overscroll chains to the page during active drag only, so a bounce-back settle does not move the page. Bottom-edge overscroll chains during both drag and the fling that follows it.
 
 For a `RefreshIndicator`, wrap the inner scrollable in `BrowserScrollChild(preserveTopOverscroll: true, ...)` so a pull-down at the top arms refresh instead of scrolling the page:
 
 ```dart
-RefreshIndicator(
-  onRefresh: _onRefresh,
-  child: BrowserScrollChild(
-    preserveTopOverscroll: true,
-    child: ListView.builder(
-      primary: false,
-      itemCount: 50,
-      itemBuilder: (BuildContext context, int index) {
-        return ListTile(title: Text('Refresh item $index'));
-      },
+SizedBox(
+  height: 400,
+  child: RefreshIndicator(
+    onRefresh: _onRefresh,
+    child: BrowserScrollChild(
+      preserveTopOverscroll: true,
+      child: ListView.builder(
+        primary: false,
+        itemCount: 50,
+        itemBuilder: (BuildContext context, int index) {
+          return ListTile(title: Text('Refresh item $index'));
+        },
+      ),
     ),
   ),
 )
@@ -175,9 +180,9 @@ RefreshIndicator(
 
 ## Features
 
-- Revealed-content placeholder height for lazy Flutter lists.
+- The page's scroll height grows as the user reaches more content, with up to one screen of lookahead.
 - `animateTo` and `jumpTo` delegation to browser scroll.
-- Nested Flutter scrollable overscroll forwarding.
-- Touches on inner Flutter scrollables do not also pan the page on mobile browsers.
-- Page scroll lock for modal routes via `BrowserScrollRouteObserver`.
-- Comprehensive demo coverage for iframes, keyboard scroll, overlays, and programmatic scroll.
+- Edge overscroll from inner vertical Flutter scrollables continues into the page.
+- Touches that start on an inner vertical Flutter scrollable do not also pan the page on mobile browsers.
+- Page scroll lock while a popup route is open, via `BrowserScrollRouteObserver`, or on demand with `lockPageScroll`.
+- Demo covering inner lists, pull-to-refresh, iframes, same-origin HTML, keyboard scroll, overlays, programmatic scroll, and a horizontal carousel.

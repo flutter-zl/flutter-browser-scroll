@@ -26,7 +26,7 @@ abstract class ExternalScroller {
   void setNativePanBlocked(bool blocked) {}
 
   /// Freezes or releases the page scroll for every input: wheel, trackpad,
-  /// touch, and keyboard. Used while a modal route is open.
+  /// touch, and keyboard. Used while a popup route is open.
   void setPageScrollLocked(bool locked) {}
 
   void dispose();

@@ -48,7 +48,7 @@ class BrowserScrollController extends ScrollController {
   ///
   /// Calls nest: the page stays frozen until every lock has been released
   /// with [unlockPageScroll]. [BrowserScrollRouteObserver] calls this for
-  /// modal routes.
+  /// popup routes.
   void lockPageScroll() {
     _pageScrollLocks += 1;
     if (_pageScrollLocks == 1) {

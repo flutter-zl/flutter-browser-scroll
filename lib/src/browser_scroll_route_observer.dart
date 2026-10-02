@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import 'browser_scroll_controller.dart';
 
-/// Freezes the browser page while a modal route is open.
+/// Freezes the browser page while a popup route is open.
 ///
 /// Add it to `MaterialApp.navigatorObservers` or `Navigator.observers`:
 ///
@@ -19,8 +19,10 @@ import 'browser_scroll_controller.dart';
 /// ```
 ///
 /// Any [PopupRoute], which covers `showDialog`, `showModalBottomSheet`,
-/// menus, and dropdowns, takes a lock on push and releases it on pop. Page
-/// routes do not. The page stays frozen until the last popup is gone.
+/// `PopupMenuButton`, and `DropdownButton`, takes a lock on push and releases
+/// it on pop. Page routes do not. The page stays frozen until the last popup
+/// is gone. `MenuAnchor` and `DropdownMenu` open without a route, so lock the
+/// page for them with [BrowserScrollController.lockPageScroll].
 class BrowserScrollRouteObserver extends NavigatorObserver {
   BrowserScrollRouteObserver(this.controller);
 
