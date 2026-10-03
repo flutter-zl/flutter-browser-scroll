@@ -44,6 +44,9 @@ class JsViewScroller implements ExternalScroller {
   ui.Rect _lastVisibleRect = ui.Rect.zero;
 
   @override
+  bool get isFullPage => _hostElement.tagName.toLowerCase() == 'body';
+
+  @override
   ui.Rect computeVisibleRect() {
     final ui.Rect placeholderRect =
         _placeholderElement.getBoundingClientRect().toRect();

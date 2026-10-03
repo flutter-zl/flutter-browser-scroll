@@ -53,6 +53,10 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 - Browser scrolls do not emit `ScrollNotification`s. Widgets that depend on them, such as an auto-hiding `Scrollbar` or a FAB that hides on scroll, will not react to page scrolls. Use `controller.addListener` instead.
 - Inner scrollables default to `ClampingScrollPhysics` on every platform, so their edge overscroll can hand off to the page. Set `physics` explicitly to override.
 
+## Known limitations
+
+- On iOS Safari and Chrome, when the browser collapses its toolbar while the page scrolls, a strip at the bottom of the screen stays unpainted. On iOS, Flutter's web engine keeps its view at the toolbar-expanded height, so fixing this needs a change in the engine. See [flutter/flutter#193743](https://github.com/flutter/flutter/issues/193743).
+
 ## Usage
 
 ### Basic page

@@ -89,6 +89,11 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   // the window's own position is not visible while it lags.
   double? _deferredPageOffset;
 
+  // How far the browser page is scrolled past either end, for example during
+  // an iOS rubber-band bounce. Full-page only. The content is shifted by this
+  // amount so it moves like a native page instead of being clipped.
+  double _browserOverscroll = 0;
+
   @override
   void initState() {
     super.initState();
@@ -148,13 +153,20 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       return;
     }
     if (_scrollController.hasClients) {
-      _scrollController.syncFromBrowser(
-        clampDouble(
-          scrollerApi.scrollTop,
-          _scrollController.position.minScrollExtent,
-          _scrollController.position.maxScrollExtent,
-        ),
+      final double scrollTop = scrollerApi.scrollTop;
+      final double clamped = clampDouble(
+        scrollTop,
+        _scrollController.position.minScrollExtent,
+        _scrollController.position.maxScrollExtent,
       );
+      _scrollController.syncFromBrowser(clamped);
+      final double overscroll =
+          scrollerApi.isFullPage ? scrollTop - clamped : 0;
+      if (overscroll != _browserOverscroll) {
+        setState(() {
+          _browserOverscroll = overscroll;
+        });
+      }
     }
   }
 
@@ -361,38 +373,46 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     final ScrollBehavior childScrollBehavior = ScrollConfiguration.of(
       context,
     ).copyWith(physics: const ClampingScrollPhysics());
+    // A full page fills the whole view, so it never lags behind a browser
+    // toolbar resize. An embedded view follows the on-screen part of its
+    // placeholder.
+    final ui.Rect drawRect =
+        scrollerApi.isFullPage ? Offset.zero & viewSize : visibleRect;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        visibleRect.left,
-        visibleRect.top,
-        max(0, viewSize.width - visibleRect.right),
-        max(0, viewSize.height - visibleRect.bottom),
+        drawRect.left,
+        drawRect.top,
+        max(0, viewSize.width - drawRect.right),
+        max(0, viewSize.height - drawRect.bottom),
       ),
       child: NotificationListener<OverscrollNotification>(
         onNotification: _handleOverscrollNotification,
-        child: SizedBox(
-          width: visibleRect.width,
-          height: visibleRect.height,
-          child: Scrollable(
-            controller: _scrollController,
-            physics: const NeverScrollableScrollPhysics(),
-            scrollBehavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            viewportBuilder: (BuildContext context, ViewportOffset offset) {
-              return Viewport(
-                offset: offset,
-                axisDirection: AxisDirection.down,
-                slivers: <Widget>[
-                  SliverToBoxAdapter(
-                    child: ScrollConfiguration(
-                      behavior: childScrollBehavior,
-                      child: widget.child,
+        child: Transform.translate(
+          offset: Offset(0, -_browserOverscroll),
+          child: SizedBox(
+            width: drawRect.width,
+            height: drawRect.height,
+            child: Scrollable(
+              controller: _scrollController,
+              physics: const NeverScrollableScrollPhysics(),
+              scrollBehavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(scrollbars: false),
+              viewportBuilder: (BuildContext context, ViewportOffset offset) {
+                return Viewport(
+                  offset: offset,
+                  axisDirection: AxisDirection.down,
+                  slivers: <Widget>[
+                    SliverToBoxAdapter(
+                      child: ScrollConfiguration(
+                        behavior: childScrollBehavior,
+                        child: widget.child,
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

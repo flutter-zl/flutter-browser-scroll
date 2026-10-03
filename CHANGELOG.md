@@ -24,6 +24,12 @@
 * Inner scrollables inside `BrowserScroller` now default to
   `ClampingScrollPhysics`, so overscroll hands off to the page on iOS too. A
   scrollable that sets its own `physics` keeps them.
+* A full-page `BrowserScroller` now draws into the whole Flutter view instead
+  of the on-screen part of its placeholder, so it no longer lags behind a
+  browser toolbar resize. During a browser rubber-band bounce past either end,
+  the content now moves with the page instead of being clipped.
+* `ExternalScroller` gained `isFullPage`. The default is `false`, which keeps
+  the embedded behavior.
 
 ## 0.1.0
 

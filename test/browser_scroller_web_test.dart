@@ -553,6 +553,82 @@ void main() {
       expect(html.style.overflow, originalOverflow);
       expect(html.style.getPropertyValue('scrollbar-gutter'), originalGutter);
     });
+
+    testWidgets('full page fills the view when the placeholder is shorter', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller()
+        ..fullPage = true
+        ..visibleRect = const ui.Rect.fromLTWH(0, 0, 800, 500);
+      final controller = BrowserScrollController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _TestHost(scrollerApi: scroller, controller: controller),
+      );
+
+      expect(controller.position.viewportDimension, 600);
+    });
+
+    testWidgets('full page content moves with a browser bounce', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller()..fullPage = true;
+      final controller = BrowserScrollController();
+      addTearDown(controller.dispose);
+      const Key pageKey = ValueKey<String>('page');
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          controller: controller,
+          child: const SizedBox(key: pageKey, width: 800, height: 1200),
+        ),
+      );
+
+      // The page can scroll 600px; the browser bounces 50px past the end.
+      scroller.scrollTopValue = 650;
+      for (final void Function() listener in scroller.scrollListeners) {
+        listener();
+      }
+      await tester.pump();
+      expect(controller.position.pixels, 600);
+      expect(tester.getTopLeft(find.byKey(pageKey)).dy, -650);
+
+      // And 30px past the top.
+      scroller.scrollTopValue = -30;
+      for (final void Function() listener in scroller.scrollListeners) {
+        listener();
+      }
+      await tester.pump();
+      expect(controller.position.pixels, 0);
+      expect(tester.getTopLeft(find.byKey(pageKey)).dy, 30);
+    });
+
+    testWidgets('embedded content does not move past the end', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+      final controller = BrowserScrollController();
+      addTearDown(controller.dispose);
+      const Key pageKey = ValueKey<String>('page');
+
+      await tester.pumpWidget(
+        _TestHost(
+          scrollerApi: scroller,
+          controller: controller,
+          child: const SizedBox(key: pageKey, width: 800, height: 1200),
+        ),
+      );
+
+      scroller.scrollTopValue = 650;
+      for (final void Function() listener in scroller.scrollListeners) {
+        listener();
+      }
+      await tester.pump();
+      expect(controller.position.pixels, 600);
+      expect(tester.getTopLeft(find.byKey(pageKey)).dy, -600);
+    });
   });
 }
 
@@ -660,6 +736,13 @@ class _TrackingBrowserScrollController extends BrowserScrollController {
 }
 
 class _FakeExternalScroller implements ExternalScroller {
+  bool fullPage = false;
+  double scrollTopValue = 0;
+  ui.Rect visibleRect = const ui.Rect.fromLTWH(0, 0, 800, 600);
+
+  @override
+  bool get isFullPage => fullPage;
+
   int setupCount = 0;
   int disposeCount = 0;
   int scrollListenerCount = 0;
@@ -670,7 +753,7 @@ class _FakeExternalScroller implements ExternalScroller {
   final List<bool> nativePanBlockedCalls = <bool>[];
 
   @override
-  double get scrollTop => 0;
+  double get scrollTop => scrollTopValue;
 
   @override
   void addScrollListener(void Function() callback) {
@@ -685,7 +768,7 @@ class _FakeExternalScroller implements ExternalScroller {
 
   @override
   ui.Rect computeVisibleRect() {
-    return const ui.Rect.fromLTWH(0, 0, 800, 600);
+    return visibleRect;
   }
 
   @override

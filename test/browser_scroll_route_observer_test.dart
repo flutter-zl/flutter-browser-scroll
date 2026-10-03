@@ -94,6 +94,9 @@ void main() {
 }
 
 class _FakeExternalScroller implements ExternalScroller {
+  @override
+  bool get isFullPage => false;
+
   final List<bool> lockCalls = <bool>[];
 
   @override

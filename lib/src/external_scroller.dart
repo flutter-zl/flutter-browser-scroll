@@ -7,6 +7,10 @@ import 'dart:ui' as ui;
 typedef RectCallback = void Function(ui.Rect);
 
 abstract class ExternalScroller {
+  /// Whether the scroller owns the whole page, with the Flutter view covering
+  /// the browser window, as opposed to one element embedded in a page.
+  bool get isFullPage => false;
+
   double get scrollTop;
 
   ui.Rect computeVisibleRect();
