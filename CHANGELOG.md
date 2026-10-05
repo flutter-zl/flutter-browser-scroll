@@ -16,6 +16,9 @@
 * Touches that start on an inner vertical Flutter scrollable no longer also
   pan the page on mobile browsers. `BrowserScroller` hit-tests each touch-down
   and cancels the browser's pan for that touch.
+* That now includes touches in the gap between two items of an inner list,
+  which reach the list's drag gesture but no item, so the page no longer pans
+  along with the list.
 * While a finger that started on an inner list is still down, handoff moves
   the page in Flutter only, and the browser's scroll position catches up when
   the finger lifts. Scrolling the window under a held finger made iOS WebKit

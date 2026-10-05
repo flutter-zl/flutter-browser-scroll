@@ -74,6 +74,11 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   late final int _viewId;
   final Set<int> _nativePanBlockingPointers = <int>{};
 
+  // Notification contexts of the inner vertical scrollables, which are their
+  // gesture detectors. Collected from ScrollMetricsNotification, which every
+  // scrollable dispatches after its first layout.
+  final Set<BuildContext> _innerVerticalScrollables = <BuildContext>{};
+
   ExternalScroller get scrollerApi => widget.scrollerApi ?? _ownedScrollerApi!;
 
   late ui.Rect visibleRect;
@@ -238,8 +243,10 @@ class _BrowserScrollerState extends State<BrowserScroller> {
   bool _hitsInnerVerticalScrollable(Offset position) {
     final HitTestResult result = HitTestResult();
     GestureBinding.instance.hitTestInView(result, position, _viewId);
+    final Set<HitTestTarget> targets = <HitTestTarget>{};
     for (final HitTestEntry entry in result.path) {
       final HitTestTarget target = entry.target;
+      targets.add(target);
       if (target is! RenderViewportBase || target.axis != Axis.vertical) {
         continue;
       }
@@ -250,6 +257,37 @@ class _BrowserScrollerState extends State<BrowserScroller> {
           offset.physics.shouldAcceptUserOffset(offset)) {
         return true;
       }
+    }
+    // A touch in the gap between two items reaches no item, so the viewport,
+    // which only counts as hit through its items, is not in the path. The
+    // list's gesture detector still gets the touch and drags the list.
+    _innerVerticalScrollables.removeWhere((BuildContext context) {
+      return !context.mounted;
+    });
+    for (final BuildContext context in _innerVerticalScrollables) {
+      if (!targets.contains(context.findRenderObject())) {
+        continue;
+      }
+      final ScrollPosition? offset =
+          context.findAncestorStateOfType<ScrollableState>()?.position;
+      if (offset != null && offset.physics.shouldAcceptUserOffset(offset)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _handleNotification(Notification notification) {
+    if (notification is ScrollMetricsNotification) {
+      // Depth 0 is the outer page Scrollable itself.
+      if (notification.depth > 0 &&
+          notification.metrics.axis == Axis.vertical) {
+        _innerVerticalScrollables.add(notification.context);
+      }
+      return false;
+    }
+    if (notification is OverscrollNotification) {
+      return _handleOverscrollNotification(notification);
     }
     return false;
   }
@@ -385,8 +423,8 @@ class _BrowserScrollerState extends State<BrowserScroller> {
         max(0, viewSize.width - drawRect.right),
         max(0, viewSize.height - drawRect.bottom),
       ),
-      child: NotificationListener<OverscrollNotification>(
-        onNotification: _handleOverscrollNotification,
+      child: NotificationListener<Notification>(
+        onNotification: _handleNotification,
         child: Transform.translate(
           offset: Offset(0, -_browserOverscroll),
           child: SizedBox(

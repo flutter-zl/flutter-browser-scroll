@@ -302,6 +302,52 @@ void main() {
       expect(scroller.nativePanBlockedCalls, <bool>[true, false]);
     });
 
+    testWidgets('blocks native pan for touch between inner list items', (
+      WidgetTester tester,
+    ) async {
+      final scroller = _FakeExternalScroller();
+
+      await tester.pumpWidget(
+        _TestHost(scrollerApi: scroller, child: const _GappedInnerListPage()),
+      );
+
+      // Each item is 80 tall with 10 of padding above and below, so y = 95 is
+      // in the gap between the first and second item, where no item takes the
+      // touch but the list's drag recognizer still does.
+      final TestGesture gesture = await tester.startGesture(
+        const Offset(400, 95),
+        kind: PointerDeviceKind.touch,
+      );
+      expect(scroller.nativePanBlockedCalls, <bool>[true]);
+
+      await gesture.up();
+      expect(scroller.nativePanBlockedCalls, <bool>[true, false]);
+    });
+
+    testWidgets(
+      'does not block native pan between items of a list that cannot scroll',
+      (WidgetTester tester) async {
+        final scroller = _FakeExternalScroller();
+
+        await tester.pumpWidget(
+          _TestHost(
+            scrollerApi: scroller,
+            child: const _GappedInnerListPage(
+              physics: NeverScrollableScrollPhysics(),
+            ),
+          ),
+        );
+
+        final TestGesture gesture = await tester.startGesture(
+          const Offset(400, 95),
+          kind: PointerDeviceKind.touch,
+        );
+        expect(scroller.nativePanBlockedCalls, <bool>[false]);
+
+        await gesture.up();
+      },
+    );
+
     testWidgets('does not block native pan for touch outside inner list', (
       WidgetTester tester,
     ) async {
@@ -652,6 +698,37 @@ class _InnerListPage extends StatelessWidget {
             itemBuilder: (BuildContext context, int index) {
               return Text('Item $index');
             },
+          ),
+        ),
+        const SizedBox(width: 800, height: 900),
+      ],
+    );
+  }
+}
+
+class _GappedInnerListPage extends StatelessWidget {
+  const _GappedInnerListPage({this.physics});
+
+  final ScrollPhysics? physics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        SizedBox(
+          height: 300,
+          child: ListView(
+            physics: physics,
+            children: <Widget>[
+              for (int i = 0; i < 20; i++)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: ColoredBox(
+                    color: Color(0xFF2196F3),
+                    child: SizedBox(height: 80),
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(width: 800, height: 900),
