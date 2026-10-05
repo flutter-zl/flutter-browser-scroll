@@ -12,12 +12,16 @@ This package is web-only. `BrowserScroller` uses web DOM APIs through its defaul
 
 ## Demo
 
-A comprehensive A/B demo is deployed:
+Comprehensive A/B demos are deployed:
 
 - **After** (package applied): https://flutter-demo-26-after.web.app
 - **Before** (no package, same UI): https://flutter-demo-26-before.web.app
+- **After, semantics on**: https://flutter-demo-26-semantic-after.web.app
+- **Before, semantics on**: https://flutter-demo-26-semantic-bef.web.app
 
-Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and platform views, keyboard scroll, programmatic scroll, and a horizontal carousel between the two URLs. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
+Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and platform views, keyboard scroll, programmatic scroll, and a horizontal carousel between each After and Before pair. Source at [`example/lib/comprehensive.dart`](example/lib/comprehensive.dart).
+
+The semantics demos enable semantics at startup, so Flutter builds the accessibility tree a screen reader would use, without needing one. Source at [`example/lib/comprehensive_semantics.dart`](example/lib/comprehensive_semantics.dart) and [`example/lib/comprehensive_semantics_before.dart`](example/lib/comprehensive_semantics_before.dart).
 
 ## Installation
 

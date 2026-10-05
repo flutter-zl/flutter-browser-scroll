@@ -30,3 +30,5 @@ Then pick one entry to run:
 
 - After (package applied): https://flutter-demo-26-after.web.app
 - Before (no package): https://flutter-demo-26-before.web.app
+- After, semantics on: https://flutter-demo-26-semantic-after.web.app
+- Before, semantics on: https://flutter-demo-26-semantic-bef.web.app
