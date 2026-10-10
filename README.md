@@ -59,7 +59,7 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 
 ## Known limitations
 
-- On iOS Safari and Chrome, when the browser collapses its toolbar while the page scrolls, a strip at the bottom of the screen stays unpainted. On iOS, Flutter's web engine keeps its view at the toolbar-expanded height, so fixing this needs a change in the engine. See [flutter/flutter#193743](https://github.com/flutter/flutter/issues/193743).
+- On iOS Safari and Chrome, an embedded HTML scroller, such as an iframe or an element with `overflow: auto`, hands off to the page only after it stops moving. A swipe that starts while it is still coasting or bouncing at its edge scrolls it again instead of the page. This is how WebKit scrolls nested HTML scrollers, also on pages without Flutter, and the package does not change how touches inside platform views scroll.
 
 ## Usage
 
