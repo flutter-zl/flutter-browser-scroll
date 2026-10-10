@@ -1,0 +1,94 @@
+name: Bug report
+description: Something scrolls, freezes, or renders wrong with flutter_browser_scroll.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying the package. Scrolling bugs often depend on the
+        browser, the device, and where the touch starts, so please fill in
+        each field.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Include where each touch or scroll starts: on an inner Flutter list,
+        an iframe or other HTML element, or plain page content. Say whether it
+        happens right after the page loads.
+      placeholder: |
+        1. Load the page.
+        2. Drag the inner list in section 1 upward.
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Page where it happens
+      description: Your site, or the demo at https://flutter-demo-26-after.web.app with the section number.
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Safari 27, Chrome 141
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS
+      placeholder: iPhone 16 with iOS 27, Pixel 8 with Android 16, MacBook with macOS 26
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input
+    attributes:
+      label: Input
+      multiple: true
+      options:
+        - Touch
+        - Mouse wheel
+        - Trackpad
+        - Keyboard
+    validations:
+      required: true
+
+  - type: input
+    id: flutter-version
+    attributes:
+      label: Flutter version and channel
+      description: The first line of `flutter --version`.
+      placeholder: Flutter X.Y.Z, channel stable
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: flutter_browser_scroll version
+      description: The tag or commit you depend on.
+      placeholder: v0.2.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Code sample, logs, or screen recording
+      description: Optional. A minimal `main.dart` helps most.
