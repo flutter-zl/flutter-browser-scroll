@@ -1,4 +1,4 @@
-## Unreleased
+## 0.2.0
 
 * Added `BrowserScrollController.lockPageScroll` and `unlockPageScroll` to
   freeze the page for wheel, trackpad, touch, and keyboard input, and
