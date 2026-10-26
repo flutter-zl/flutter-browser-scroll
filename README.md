@@ -41,6 +41,8 @@ Compare inner-list overscroll chaining, the `RefreshIndicator` flow, iframes and
 
 The semantics demos enable semantics at startup, so Flutter builds the accessibility tree a screen reader would use, without needing one. Source at [`example/lib/comprehensive_semantics.dart`](example/lib/comprehensive_semantics.dart) and [`example/lib/comprehensive_semantics_before.dart`](example/lib/comprehensive_semantics_before.dart).
 
+To see the package with both engine fixes from [Flutter version support](#flutter-version-support), try the same demo built with Flutter master: https://flutter-demo-82-after.web.app
+
 ## Installation
 
 Until this package is published to pub.dev, add it as a Git dependency:
@@ -77,6 +79,7 @@ Because the browser owns the page scroll, a few things differ from a normal `Scr
 
 ## Known limitations
 
+- On Android with Flutter beta 3.50, if the first gesture after a page load is a long drag on an inner Flutter list, the page can stop scrolling until it is reloaded. Flutter removes its accessibility placeholder from under the finger mid-drag, and the browser then never reports the finger lifting. Flutter stable 3.47 can hit this too, but rarely. [#194109](https://github.com/flutter/flutter/pull/194109) fixes it in Flutter and is on master.
 - On iOS Safari and Chrome, an embedded HTML scroller, such as an iframe or an element with `overflow: auto`, hands off to the page only after it stops moving. A swipe that starts while it is still coasting or bouncing at its edge scrolls it again instead of the page. This is how WebKit scrolls nested HTML scrollers, also on pages without Flutter, and the package does not change how touches inside platform views scroll.
 
 ## Usage

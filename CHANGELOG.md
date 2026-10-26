@@ -4,6 +4,9 @@ Tested on Flutter 3.47.7 stable.
 
 * The README now lists which engine fixes the package relies on and which
   Flutter channels have them, and states the versioning policy.
+* The README lists the Android freeze from flutter/flutter#194104 under Known
+  limitations, and links a demo built with Flutter master that has both
+  engine fixes.
 * CI runs analysis and the VM and browser tests on Flutter stable and beta.
 
 ## 0.2.0
