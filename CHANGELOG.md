@@ -1,4 +1,6 @@
-## Unreleased
+## 0.3.0
+
+Tested on Flutter 3.47.7 stable.
 
 * On Android with Flutter versions before flutter/flutter#194109, a drag
   could lose its pointerup and leave the page unable to pan until reload.
@@ -6,6 +8,9 @@
   no other finger down, so the page recovers on the next touch.
 * `ExternalScroller` gained `setFirstTouchListener`. The default is a no-op,
   so existing implementations keep compiling but do not get the recovery.
+* The README now lists which engine fixes the package relies on and which
+  Flutter channels have them, and states the versioning policy.
+* CI runs analysis and the VM and browser tests on Flutter stable and beta.
 
 ## 0.2.0
 

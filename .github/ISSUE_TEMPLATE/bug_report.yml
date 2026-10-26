@@ -73,8 +73,11 @@ body:
     id: flutter-version
     attributes:
       label: Flutter version and channel
-      description: The first line of `flutter --version`.
-      placeholder: Flutter X.Y.Z, channel stable
+      description: |
+        The first line of `flutter --version`. Some fixes the package relies
+        on are only on beta or master so far, see Flutter version support in
+        the README.
+      placeholder: Flutter 3.47.7, channel stable
     validations:
       required: true
 
@@ -83,7 +86,7 @@ body:
     attributes:
       label: flutter_browser_scroll version
       description: The tag or commit you depend on.
-      placeholder: v0.2.0
+      placeholder: v0.3.0
     validations:
       required: true
 

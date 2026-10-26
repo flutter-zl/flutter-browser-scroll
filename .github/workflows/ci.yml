@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Weekly, so a new beta that breaks the package shows up without a push.
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Flutter ${{ matrix.channel }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable, beta]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ matrix.channel }}
+          cache: true
+
+      - run: flutter --version
+
+      - run: flutter pub get
+
+      - name: Check formatting
+        # Formatter output can change between channels, so only stable gates.
+        if: matrix.channel == 'stable'
+        run: dart format --output=none --set-exit-if-changed lib test example/lib
+
+      - name: Analyze
+        # Newer channels can add deprecation infos, such as material.dart in
+        # favor of material_ui, that should not fail the build.
+        run: flutter analyze --no-fatal-infos
+
+      - name: VM tests
+        run: flutter test
+
+      - name: Browser tests
+        run: flutter test --platform chrome test/browser_scroller_web_test.dart

@@ -1,5 +1,7 @@
 # flutter_browser_scroll
 
+[![CI](https://github.com/flutter-zl/flutter-browser-scroll/actions/workflows/ci.yml/badge.svg)](https://github.com/flutter-zl/flutter-browser-scroll/actions/workflows/ci.yml)
+
 Experimental Flutter Web package that lets the browser own the outermost scroll.
 
 ## Acknowledgment
@@ -10,9 +12,25 @@ Built on top of [Mouad Debbar's flutter-browser-scroll](https://github.com/mdebb
 
 This package is web-only. `BrowserScroller` uses web DOM APIs through its default `JsViewScroller`, so non-web platforms are not supported.
 
+## Flutter version support
+
+Letting the browser scroll the page exercises parts of the Flutter web engine that a regular Flutter app never reaches, so this package evolves with Flutter releases. Two engine fixes it relies on have not reached every channel yet:
+
+| Engine fix | Stable 3.47 | Beta 3.50 | Master |
+|---|---|---|---|
+| [#193744](https://github.com/flutter/flutter/pull/193744): on iOS, the Flutter view keeps its old height when the browser toolbar collapses, leaving a white strip at the bottom | Not fixed | Fixed | Fixed |
+| [#194109](https://github.com/flutter/flutter/pull/194109): on Android, a drag can lose its pointer up, which leaves the page unable to scroll | Not fixed, the package recovers on the next touch | Not fixed, the package recovers on the next touch | Fixed |
+
+- CI runs the tests on stable and beta.
+- Each release notes in the [changelog](CHANGELOG.md) the Flutter version it was tested on.
+- Until 1.0, a minor release can include breaking changes.
+- When a fix reaches stable, a release raises the minimum Flutter version and removes the matching workaround.
+
+When you report a bug, include your Flutter version and channel.
+
 ## Demo
 
-Comprehensive A/B demos are deployed:
+Comprehensive A/B demos are deployed, all built with Flutter 3.47.7 stable:
 
 - **After** (package applied): https://flutter-demo-26-after.web.app
 - **Before** (no package, same UI): https://flutter-demo-26-before.web.app
@@ -32,7 +50,7 @@ dependencies:
   flutter_browser_scroll:
     git:
       url: https://github.com/flutter-zl/flutter-browser-scroll.git
-      ref: v0.2.0
+      ref: v0.3.0
 ```
 
 The target mental model:
