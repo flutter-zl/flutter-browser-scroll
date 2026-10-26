@@ -1,3 +1,12 @@
+## Unreleased
+
+* On Android with Flutter versions before flutter/flutter#194109, a drag
+  could lose its pointerup and leave the page unable to pan until reload.
+  `BrowserScroller` now drops such stale touches when a new touch starts with
+  no other finger down, so the page recovers on the next touch.
+* `ExternalScroller` gained `setFirstTouchListener`. The default is a no-op,
+  so existing implementations keep compiling but do not get the recovery.
+
 ## 0.2.0
 
 * Added `BrowserScrollController.lockPageScroll` and `unlockPageScroll` to

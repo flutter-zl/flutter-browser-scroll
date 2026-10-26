@@ -29,6 +29,7 @@ class JsViewScroller implements ExternalScroller {
 
   late final JSFunction _jsScrollListener = _scrollListener.toJS;
   late final JSFunction _jsTouchMoveListener = _touchMoveListener.toJS;
+  late final JSFunction _jsPointerDownListener = _pointerDownListener.toJS;
   final List<void Function()> _scrollListeners = <void Function()>[];
   final List<RectCallback> _visibleRectListeners = <RectCallback>[];
   web.IntersectionObserver? _observer;
@@ -38,7 +39,8 @@ class JsViewScroller implements ExternalScroller {
   double? _pendingScrollTarget;
   bool _nativePanBlocked = false;
   bool _pageScrollLocked = false;
-  bool _touchMoveListenerAttached = false;
+  bool _touchListenersAttached = false;
+  ui.VoidCallback? _firstTouchListener;
   String? _savedScrollbarGutter;
 
   ui.Rect _lastVisibleRect = ui.Rect.zero;
@@ -119,7 +121,7 @@ class JsViewScroller implements ExternalScroller {
     // allows the pan, preventDefault on a non-passive touchmove is the only
     // reliable way to cancel it. BrowserScroller decides which touches to
     // block through setNativePanBlocked.
-    _attachTouchMoveListener();
+    _attachTouchListeners();
 
     final web.Element? flutterView = body.querySelector('flutter-view');
     if (flutterView case final web.HTMLElement view) {
@@ -128,22 +130,61 @@ class JsViewScroller implements ExternalScroller {
     }
   }
 
-  void _attachTouchMoveListener() {
-    if (_touchMoveListenerAttached) {
+  void _attachTouchListeners() {
+    if (_touchListenersAttached) {
       return;
     }
-    web.document.body!.addEventListener(
+    final web.HTMLElement body = web.document.body!;
+    body.addEventListener(
       'touchmove',
       _jsTouchMoveListener,
       <String, Object>{'passive': false, 'capture': true}.jsify()!,
     );
-    _touchMoveListenerAttached = true;
+    // Capture on body runs before the engine's pointerdown listener on the
+    // view, so a stale touch is dropped before the new one is tracked.
+    body.addEventListener(
+      'pointerdown',
+      _jsPointerDownListener,
+      <String, Object>{'passive': true, 'capture': true}.jsify()!,
+    );
+    _touchListenersAttached = true;
+  }
+
+  void _detachTouchListeners() {
+    if (!_touchListenersAttached) {
+      return;
+    }
+    final JSAny capture = <String, Object>{'capture': true}.jsify()!;
+    web.document.body?.removeEventListener(
+      'touchmove',
+      _jsTouchMoveListener,
+      capture,
+    );
+    web.document.body?.removeEventListener(
+      'pointerdown',
+      _jsPointerDownListener,
+      capture,
+    );
+    _touchListenersAttached = false;
   }
 
   void _touchMoveListener(web.Event event) {
     if ((_nativePanBlocked || _pageScrollLocked) &&
         !_isPlatformViewEvent(event)) {
       event.preventDefault();
+    }
+  }
+
+  // Works around https://github.com/flutter/flutter/issues/194104, fixed by
+  // https://github.com/flutter/flutter/pull/194109. Before that fix, the
+  // engine on Android can remove the semantics placeholder from under a
+  // finger mid-drag, and Chrome then drops the rest of the touch, including
+  // pointerup. Remove once the minimum Flutter version includes the fix.
+  void _pointerDownListener(web.Event event) {
+    final web.PointerEvent pointerEvent = event as web.PointerEvent;
+    // isPrimary on a touch means no other finger is down.
+    if (pointerEvent.pointerType == 'touch' && pointerEvent.isPrimary) {
+      _firstTouchListener?.call();
     }
   }
 
@@ -283,6 +324,11 @@ class JsViewScroller implements ExternalScroller {
   }
 
   @override
+  void setFirstTouchListener(ui.VoidCallback? callback) {
+    _firstTouchListener = callback;
+  }
+
+  @override
   void setPageScrollLocked(bool locked) {
     if (_pageScrollLocked == locked) {
       return;
@@ -295,7 +341,7 @@ class JsViewScroller implements ExternalScroller {
     // in the touchmove listener.
     documentElement.style.overflow = locked ? 'hidden' : 'auto';
     if (locked) {
-      _attachTouchMoveListener();
+      _attachTouchListeners();
     }
   }
 
@@ -339,18 +385,12 @@ class JsViewScroller implements ExternalScroller {
     _completePendingScroll();
     _nativePanBlocked = false;
     _pageScrollLocked = false;
+    _firstTouchListener = null;
     _observer?.disconnect();
     if (_scrollListeners.isNotEmpty) {
       _scrollTarget.removeEventListener('scroll', _jsScrollListener);
     }
-    if (_touchMoveListenerAttached) {
-      web.document.body?.removeEventListener(
-        'touchmove',
-        _jsTouchMoveListener,
-        <String, Object>{'capture': true}.jsify()!,
-      );
-      _touchMoveListenerAttached = false;
-    }
+    _detachTouchListeners();
     _placeholderElement.remove();
     _hostStyleSnapshot?.restore();
     _bodyStyleSnapshot?.restore();
