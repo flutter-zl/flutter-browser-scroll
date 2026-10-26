@@ -19,7 +19,7 @@ Letting the browser scroll the page exercises parts of the Flutter web engine th
 | Engine fix | Stable 3.47 | Beta 3.50 | Master |
 |---|---|---|---|
 | [#193744](https://github.com/flutter/flutter/pull/193744): on iOS, the Flutter view keeps its old height when the browser toolbar collapses, leaving a white strip at the bottom | Not fixed | Fixed | Fixed |
-| [#194109](https://github.com/flutter/flutter/pull/194109): on Android, a drag can lose its pointer up, which leaves the page unable to scroll | Not fixed, the package recovers on the next touch | Not fixed, the package recovers on the next touch | Fixed |
+| [#194109](https://github.com/flutter/flutter/pull/194109): on Android, a drag can lose its pointer up, which leaves the page unable to scroll until reload | Not fixed | Not fixed | Fixed |
 
 - CI runs the tests on stable and beta.
 - Each release notes in the [changelog](CHANGELOG.md) the Flutter version it was tested on.

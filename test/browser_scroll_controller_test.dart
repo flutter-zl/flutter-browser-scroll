@@ -157,9 +157,6 @@ class _FakeExternalScroller implements ExternalScroller {
   void setNativePanBlocked(bool blocked) {}
 
   @override
-  void setFirstTouchListener(ui.VoidCallback? callback) {}
-
-  @override
   void setPageScrollLocked(bool locked) {
     lockCalls.add(locked);
   }

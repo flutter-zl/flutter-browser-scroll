@@ -29,13 +29,6 @@ abstract class ExternalScroller {
 
   void setNativePanBlocked(bool blocked) {}
 
-  /// Registers [callback] to run when a touch starts while no other finger is
-  /// on the screen, before Flutter receives that touch's pointer down.
-  ///
-  /// Any touch still tracked as down at that point is stale: its end never
-  /// reached Flutter. Pass null to unregister.
-  void setFirstTouchListener(ui.VoidCallback? callback) {}
-
   /// Freezes or releases the page scroll for every input: wheel, trackpad,
   /// touch, and keyboard. Used while a popup route is open.
   void setPageScrollLocked(bool locked) {}

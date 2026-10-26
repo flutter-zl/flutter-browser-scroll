@@ -302,67 +302,6 @@ void main() {
       expect(scroller.nativePanBlockedCalls, <bool>[true, false]);
     });
 
-    // Before https://github.com/flutter/flutter/pull/194109, Chrome on
-    // Android could drop a touch's pointerup, which left the page pan blocked
-    // until reload.
-    testWidgets('a first touch drops a touch whose pointerup was lost', (
-      WidgetTester tester,
-    ) async {
-      final scroller = _FakeExternalScroller();
-
-      await tester.pumpWidget(
-        _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
-      );
-      expect(scroller.firstTouchListener, isNotNull);
-
-      // The first touch never gets a pointerup.
-      final TestGesture lost = await tester.startGesture(
-        const Offset(400, 100),
-        kind: PointerDeviceKind.touch,
-      );
-      expect(scroller.nativePanBlockedCalls, <bool>[true]);
-
-      scroller.firstTouchListener!();
-      expect(scroller.nativePanBlockedCalls, <bool>[true, false]);
-
-      // A later touch outside the inner list leaves the page free to pan.
-      final TestGesture outside = await tester.startGesture(
-        const Offset(400, 500),
-        kind: PointerDeviceKind.touch,
-      );
-      expect(scroller.nativePanBlockedCalls, <bool>[true, false, false]);
-      await outside.up();
-      // Only releases the test's own pointer state.
-      await lost.up();
-    });
-
-    testWidgets('a first touch with nothing tracked changes nothing', (
-      WidgetTester tester,
-    ) async {
-      final scroller = _FakeExternalScroller();
-
-      await tester.pumpWidget(
-        _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
-      );
-
-      scroller.firstTouchListener!();
-      expect(scroller.nativePanBlockedCalls, isEmpty);
-    });
-
-    testWidgets('dispose unregisters the first touch listener', (
-      WidgetTester tester,
-    ) async {
-      final scroller = _FakeExternalScroller();
-
-      await tester.pumpWidget(
-        _TestHost(scrollerApi: scroller, child: const _InnerListPage()),
-      );
-      expect(scroller.firstTouchListener, isNotNull);
-
-      await tester.pumpWidget(const SizedBox());
-      expect(scroller.firstTouchListener, isNull);
-    });
-
     testWidgets('blocks native pan for touch between inner list items', (
       WidgetTester tester,
     ) async {
@@ -927,13 +866,6 @@ class _FakeExternalScroller implements ExternalScroller {
   @override
   void setNativePanBlocked(bool blocked) {
     nativePanBlockedCalls.add(blocked);
-  }
-
-  ui.VoidCallback? firstTouchListener;
-
-  @override
-  void setFirstTouchListener(ui.VoidCallback? callback) {
-    firstTouchListener = callback;
   }
 
   @override

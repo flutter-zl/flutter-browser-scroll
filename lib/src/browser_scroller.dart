@@ -125,7 +125,6 @@ class _BrowserScrollerState extends State<BrowserScroller> {
       ..prepareTarget = _prepareForTarget;
 
     scrollerApi.setup();
-    scrollerApi.setFirstTouchListener(_dropStaleTouches);
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointerEvent);
 
     _syncVisibleRect();
@@ -239,19 +238,6 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     if (_nativePanBlockingPointers.isEmpty) {
       _commitDeferredPageOffset();
     }
-  }
-
-  // A touch started with no other finger down, so every pointer still tracked
-  // here lost its up or cancel. Without this, one lost pointerup would keep
-  // the page pan blocked until reload. See
-  // https://github.com/flutter/flutter/issues/194104.
-  void _dropStaleTouches() {
-    if (_nativePanBlockingPointers.isEmpty) {
-      return;
-    }
-    _nativePanBlockingPointers.clear();
-    scrollerApi.setNativePanBlocked(false);
-    _commitDeferredPageOffset();
   }
 
   bool _hitsInnerVerticalScrollable(Offset position) {
@@ -406,7 +392,6 @@ class _BrowserScrollerState extends State<BrowserScroller> {
     if (_nativePanBlockingPointers.isNotEmpty) {
       scrollerApi.setNativePanBlocked(false);
     }
-    scrollerApi.setFirstTouchListener(null);
     _scrollController
       ..scrollerApi = null
       ..prepareTarget = null;
